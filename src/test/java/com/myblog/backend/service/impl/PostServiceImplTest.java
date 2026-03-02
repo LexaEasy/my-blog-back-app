@@ -15,9 +15,16 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = ServiceTestConfig.class)
@@ -75,7 +82,7 @@ class PostServiceImplTest {
 
         when(postDao.save("Новый пост", "Текст поста")).thenReturn(10L);
         when(postDao.findById(10L)).thenReturn(
-                java.util.Optional.of(new Post(10L, "Новый пост", "Текст поста", 0, 0))
+                Optional.of(new Post(10L, "Новый пост", "Текст поста", 0, 0))
         );
 
         PostPreviewResponse response = postService.createPost(request);
