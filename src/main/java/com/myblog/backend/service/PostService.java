@@ -7,4 +7,5 @@ import com.myblog.backend.model.dto.response.PostsPageResponse;
 public interface PostService {
     PostsPageResponse getPosts(String search, int pageNumber, int pageSize);
     PostPreviewResponse createPost(CreatePostRequest request);
+    void deletePost(long id);
 }

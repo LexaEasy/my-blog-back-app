@@ -10,4 +10,6 @@ public interface PostDao {
 
     long save(String title, String text);
     Optional<Post> findById(long id);
+
+    boolean deleteById(long id);
 }

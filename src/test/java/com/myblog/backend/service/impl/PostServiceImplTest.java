@@ -92,4 +92,26 @@ class PostServiceImplTest {
         verify(postDao, times(1)).save("Новый пост", "Текст поста");
         verify(postDao, times(1)).findById(10L);
     }
+
+    @Test
+    void deletePost_success() {
+        when(postDao.deleteById(10L)).thenReturn(true);
+
+        postService.deletePost(10L);
+
+        verify(postDao, times(1)).deleteById(10L);
+    }
+
+    @Test
+    void deletePost_notFound_shouldThrow() {
+        when(postDao.deleteById(999L)).thenReturn(false);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> postService.deletePost(999L)
+        );
+
+        assertTrue(ex.getMessage().contains("не найден"));
+        verify(postDao, times(1)).deleteById(999L);
+    }
 }

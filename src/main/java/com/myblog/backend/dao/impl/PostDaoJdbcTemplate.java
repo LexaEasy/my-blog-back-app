@@ -94,4 +94,13 @@ public class PostDaoJdbcTemplate implements PostDao {
         );
         return list.stream().findFirst();
     }
+
+    @Override
+    public boolean deleteById(long id) {
+        int updated = jdbcTemplate.update(
+                "delete from posts where id = ?",
+                id
+        );
+        return updated > 0;
+    }
 }

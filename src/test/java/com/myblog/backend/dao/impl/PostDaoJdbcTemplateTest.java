@@ -66,4 +66,15 @@ class PostDaoJdbcTemplateTest {
         List<Post> list = postDao.findAll("dao", 1, 10);
         assertTrue(list.stream().anyMatch(p -> p.getId() == id));
     }
+
+    @Test
+    void deleteById_shouldRemovePost() {
+        long id = postDao.save("to delete", "text");
+        assertTrue(postDao.findById(id).isPresent());
+
+        boolean deleted = postDao.deleteById(id);
+
+        assertTrue(deleted);
+        assertTrue(postDao.findById(id).isEmpty());
+    }
 }

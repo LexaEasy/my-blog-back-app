@@ -94,4 +94,14 @@ class PostControllerMvcTest {
                 .andExpect(jsonPath("$.title").value("Новый пост"))
                 .andExpect(jsonPath("$.text").value("Текст поста"));
     }
+
+    @Test
+    void deletePost_shouldReturn204() throws Exception {
+        doNothing().when(postService).deletePost(10L);
+
+        mockMvc.perform(delete("/api/posts/{id}", 10L))
+                .andExpect(status().isNoContent());
+
+        verify(postService, times(1)).deletePost(10L);
+    }
 }

@@ -68,4 +68,12 @@ public class PostServiceImpl implements PostService {
                 created.getCommentsCount()
         );
     }
+
+    @Override
+    public void deletePost(long id) {
+        boolean deleted = postDao.deleteById(id);
+        if (!deleted) {
+            throw new IllegalArgumentException("Пост с id=" + id + " не найден");
+        }
+    }
 }

@@ -30,4 +30,10 @@ public class PostController {
     public PostPreviewResponse createPost(@RequestBody CreatePostRequest request) {
         return postService.createPost(request);
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePost(@PathVariable long id) {
+        postService.deletePost(id);
+    }
 }
