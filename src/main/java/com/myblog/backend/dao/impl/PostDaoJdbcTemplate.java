@@ -2,6 +2,7 @@ package com.myblog.backend.dao.impl;
 
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -99,6 +100,24 @@ public class PostDaoJdbcTemplate implements PostDao {
     public boolean deleteById(long id) {
         int updated = jdbcTemplate.update(
                 "delete from posts where id = ?",
+                id
+        );
+        return updated > 0;
+    }
+
+    @Override
+    public boolean updateById(long id, UpdatePostRequest request) {
+        String sql = """
+          update posts
+             set title = ?, text = ?, likes_count = ?, comments_count = ?
+           where id = ?
+          """;
+        int updated = jdbcTemplate.update(
+                sql,
+                request.getTitle(),
+                request.getText(),
+                request.getLikes(),
+                request.getComments(),
                 id
         );
         return updated > 0;

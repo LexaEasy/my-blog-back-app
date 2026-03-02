@@ -34,4 +34,6 @@ public class Post {
     public Integer getCommentsCount() {
         return commentsCount;
     }
+
+
 }

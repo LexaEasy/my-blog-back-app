@@ -3,6 +3,7 @@ package com.myblog.backend.dao.impl;
 import com.myblog.backend.config.DaoTestConfig;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +77,46 @@ class PostDaoJdbcTemplateTest {
 
         assertTrue(deleted);
         assertTrue(postDao.findById(id).isEmpty());
+    }
+
+    @Test
+    void updateById_shouldReturnTrue_andChangeData_whenIdExists() {
+        // Берём существующий пост из schema.sql (обычно id=1 есть)
+        long id = 1L;
+        UpdatePostRequest request = new UpdatePostRequest(
+                "UPDATED_TITLE",
+                "UPDATED_TEXT",
+                777,
+                55
+        );
+
+        boolean updated = postDao.updateById(id, request);
+
+        assertTrue(updated);
+
+        List<Post> page = postDao.findAll("", 1, 50);
+        Post changed = page.stream()
+                .filter(p -> p.getId() == id)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Пост с id=1 не найден после update"));
+
+        assertEquals("UPDATED_TITLE", changed.getTitle());
+        assertEquals("UPDATED_TEXT", changed.getText());
+        assertEquals(777, changed.getLikesCount());
+        assertEquals(55, changed.getCommentsCount());
+    }
+
+    @Test
+    void updateById_shouldReturnFalse_whenIdDoesNotExist() {
+        UpdatePostRequest request = new UpdatePostRequest(
+                "NOPE",
+                "NOPE",
+                1,
+                1
+        );
+
+        boolean updated = postDao.updateById(999_999L, request);
+
+        assertFalse(updated);
     }
 }

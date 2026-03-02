@@ -3,6 +3,7 @@ package com.myblog.backend.service.impl;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
 import com.myblog.backend.model.dto.request.CreatePostRequest;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
@@ -75,5 +76,10 @@ public class PostServiceImpl implements PostService {
         if (!deleted) {
             throw new IllegalArgumentException("Пост с id=" + id + " не найден");
         }
+    }
+
+    @Override
+    public boolean updatePost(long id, UpdatePostRequest request) {
+        return postDao.updateById(id, request);
     }
 }

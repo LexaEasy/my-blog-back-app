@@ -1,7 +1,9 @@
 package com.myblog.backend.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myblog.backend.config.ControllerTestConfig;
 import com.myblog.backend.config.WebConfig;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
@@ -20,13 +22,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +44,9 @@ class PostControllerMvcTest {
     private PostService postService;
 
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -103,5 +107,47 @@ class PostControllerMvcTest {
                 .andExpect(status().isNoContent());
 
         verify(postService, times(1)).deletePost(10L);
+    }
+
+    @Test
+    void updatePost_shouldReturn204_whenUpdated() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+
+        UpdatePostRequest request = new UpdatePostRequest(
+                "Новый title",
+                "Новый text",
+                10,
+                2
+        );
+
+        when(postService.updatePost(eq(1L), any(UpdatePostRequest.class))).thenReturn(true);
+
+        mockMvc.perform(put("/api/posts/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(postService, times(1)).updatePost(eq(1L), any(UpdatePostRequest.class));
+    }
+
+    @Test
+    void updatePost_shouldReturn404_whenPostNotFound() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+
+        UpdatePostRequest request = new UpdatePostRequest(
+                "Новый title",
+                "Новый text",
+                10,
+                2
+        );
+
+        when(postService.updatePost(eq(999L), any(UpdatePostRequest.class))).thenReturn(false);
+
+        mockMvc.perform(put("/api/posts/{id}", 999L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+
+        verify(postService, times(1)).updatePost(eq(999L), any(UpdatePostRequest.class));
     }
 }

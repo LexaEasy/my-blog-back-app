@@ -4,6 +4,7 @@ import com.myblog.backend.config.ServiceTestConfig;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
 import com.myblog.backend.model.dto.request.CreatePostRequest;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
@@ -113,5 +114,39 @@ class PostServiceImplTest {
 
         assertTrue(ex.getMessage().contains("не найден"));
         verify(postDao, times(1)).deleteById(999L);
+    }
+
+    @Test
+    void updatePost_shouldReturnTrue_whenDaoUpdatedRow() {
+        UpdatePostRequest request = new UpdatePostRequest(
+                "Обновлённый заголовок",
+                "Обновлённый текст",
+                100,
+                10
+        );
+
+        when(postDao.updateById(1L, request)).thenReturn(true);
+
+        boolean result = postService.updatePost(1L, request);
+
+        assertTrue(result);
+        verify(postDao, times(1)).updateById(1L, request);
+    }
+
+    @Test
+    void updatePost_shouldReturnFalse_whenDaoFoundNothingToUpdate() {
+        UpdatePostRequest request = new UpdatePostRequest(
+                "Любой заголовок",
+                "Любой текст",
+                1,
+                0
+        );
+
+        when(postDao.updateById(999L, request)).thenReturn(false);
+
+        boolean result = postService.updatePost(999L, request);
+
+        assertFalse(result);
+        verify(postDao, times(1)).updateById(999L, request);
     }
 }
