@@ -51,4 +51,17 @@ class PostDaoJdbcTemplateTest {
 
         assertEquals(0, total);
     }
+
+    @Test
+    void save_shouldInsertPost() {
+        int before = postDao.count("");
+        long id = postDao.save("DAO пост", "DAO текст");
+
+        assertTrue(id > 0);
+        int after = postDao.count("");
+        assertEquals(before + 1, after);
+
+        List<Post> list = postDao.findAll("dao", 1, 10);
+        assertTrue(list.stream().anyMatch(p -> p.getId() == id));
+    }
 }

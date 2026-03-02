@@ -19,8 +19,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
@@ -66,5 +68,24 @@ class PostControllerMvcTest {
                 .andExpect(jsonPath("$.hasNext").value(true))
                 .andExpect(jsonPath("$.hasPrev").value(false))
                 .andExpect(jsonPath("$.lastPage").value(2));
+    }
+
+    @Test
+    void createPost_shouldReturn201AndJson() throws Exception {
+        PostPreviewResponse response = new PostPreviewResponse(
+                10L, "Новый пост", "Текст поста", java.util.List.of(), 0, 0
+        );
+
+        when(postService.createPost(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                              {"title":"Новый пост","text":"Текст поста"}
+                              """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.title").value("Новый пост"))
+                .andExpect(jsonPath("$.text").value("Текст поста"));
     }
 }

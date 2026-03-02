@@ -1,11 +1,11 @@
 package com.myblog.backend.controller;
 
+import com.myblog.backend.model.dto.request.CreatePostRequest;
+import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 import com.myblog.backend.service.PostService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -16,14 +16,18 @@ public class PostController {
         this.postService = postService;
     }
 
-     @GetMapping
-        public PostsPageResponse getPosts(
-             @RequestParam(defaultValue = "") String search,
-             @RequestParam(defaultValue = "1") int pageNumber,
-             @RequestParam(defaultValue = "5") int pageSize
-     )
-     {
+    @GetMapping
+    public PostsPageResponse getPosts(
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "5") int pageSize
+    ) {
+        return postService.getPosts(search, pageNumber, pageSize);
+    }
 
-         return postService.getPosts(search, pageNumber, pageSize);
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public PostPreviewResponse createPost(@RequestBody CreatePostRequest request) {
+        return postService.createPost(request);
     }
 }

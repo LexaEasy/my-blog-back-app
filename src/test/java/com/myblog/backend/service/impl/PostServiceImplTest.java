@@ -3,6 +3,8 @@ package com.myblog.backend.service.impl;
 import com.myblog.backend.config.ServiceTestConfig;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
+import com.myblog.backend.model.dto.request.CreatePostRequest;
+import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,5 +67,22 @@ class PostServiceImplTest {
 
         verify(postDao, times(1)).findAll("zzz", 1, 5);
         verify(postDao, times(1)).count("zzz");
+    }
+
+    @Test
+    void createPost_success() {
+        CreatePostRequest request = new CreatePostRequest("Новый пост", "Текст поста");
+
+        when(postDao.save("Новый пост", "Текст поста")).thenReturn(10L);
+        when(postDao.findById(10L)).thenReturn(
+                java.util.Optional.of(new Post(10L, "Новый пост", "Текст поста", 0, 0))
+        );
+
+        PostPreviewResponse response = postService.createPost(request);
+
+        assertEquals(10L, response.id());
+        assertEquals("Новый пост", response.title());
+        verify(postDao, times(1)).save("Новый пост", "Текст поста");
+        verify(postDao, times(1)).findById(10L);
     }
 }

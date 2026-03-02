@@ -1,12 +1,14 @@
 package com.myblog.backend.service.impl;
 
+import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
+import com.myblog.backend.model.dto.request.CreatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
-import java.util.List;
 import org.springframework.stereotype.Service;
-import com.myblog.backend.dao.PostDao;
+
+import java.util.List;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -32,12 +34,38 @@ public class PostServiceImpl implements PostService {
                         p.getId(),
                         p.getTitle(),
                         p.getText(),
-                        List.of(), // tags позже
+                        List.of(),
                         p.getLikesCount(),
                         p.getCommentsCount()
                 ))
                 .toList();
 
         return new PostsPageResponse(result, hasNext, hasPrev, lastPage);
+    }
+
+    @Override
+    public PostPreviewResponse createPost(CreatePostRequest request) {
+        String title = request.getTitle() == null ? "" : request.getTitle().trim();
+        String text = request.getText() == null ? "" : request.getText().trim();
+
+        if (title.isBlank()) {
+            throw new IllegalArgumentException("title не должен быть пустым");
+        }
+        if (text.isBlank()) {
+            throw new IllegalArgumentException("text не должен быть пустым");
+        }
+
+        long id = postDao.save(title, text);
+        Post created = postDao.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Созданный пост не найден"));
+
+        return new PostPreviewResponse(
+                created.getId(),
+                created.getTitle(),
+                created.getText(),
+                List.of(),
+                created.getLikesCount(),
+                created.getCommentsCount()
+        );
     }
 }

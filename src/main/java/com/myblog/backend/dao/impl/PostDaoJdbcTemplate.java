@@ -1,11 +1,15 @@
 package com.myblog.backend.dao.impl;
 
+import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import com.myblog.backend.dao.PostDao;
 
+import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class PostDaoJdbcTemplate implements PostDao {
@@ -48,5 +52,46 @@ public class PostDaoJdbcTemplate implements PostDao {
                 like, like
         );
         return value == null ? 0 : value;
+    }
+
+    @Override
+    public long save(String title, String text) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(connection -> {
+            var ps = connection.prepareStatement(
+                    "insert into posts(title, text, likes_count, comments_count) values (?, ?, 0, 0)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, title);
+            ps.setString(2, text);
+            return ps;
+        }, keyHolder);
+
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Не удалось получить id созданного поста");
+        }
+        return key.longValue();
+    }
+
+    @Override
+    public Optional<Post> findById(long id) {
+        List<Post> list = jdbcTemplate.query(
+                """
+                select id, title, text, likes_count, comments_count
+                from posts
+                where id = ?
+                """,
+                (rs, rowNum) -> new Post(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("text"),
+                        rs.getInt("likes_count"),
+                        rs.getInt("comments_count")
+                ),
+                id
+        );
+        return list.stream().findFirst();
     }
 }
