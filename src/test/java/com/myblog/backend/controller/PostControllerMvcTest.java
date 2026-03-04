@@ -24,6 +24,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -149,5 +150,31 @@ class PostControllerMvcTest {
                 .andExpect(status().isNotFound());
 
         verify(postService, times(1)).updatePost(eq(999L), any(UpdatePostRequest.class));
+    }
+
+    @Test
+    void getImage_shouldReturn200AndPng_whenPostExists() throws Exception {
+        byte[] image = new byte[]{1, 2, 3, 4};
+        when(postService.exists(1L)).thenReturn(true);
+        when(postService.getImage(1L)).thenReturn(image);
+
+        mockMvc.perform(get("/api/posts/{id}/image", 1L))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.IMAGE_PNG))
+                .andExpect(content().bytes(image));
+
+        verify(postService, times(1)).exists(1L);
+        verify(postService, times(1)).getImage(1L);
+    }
+
+    @Test
+    void getImage_shouldReturn404_whenPostNotFound() throws Exception {
+        when(postService.exists(999L)).thenReturn(false);
+
+        mockMvc.perform(get("/api/posts/{id}/image", 999L))
+                .andExpect(status().isNotFound());
+
+        verify(postService, times(1)).exists(999L);
+        verify(postService, never()).getImage(999L);
     }
 }

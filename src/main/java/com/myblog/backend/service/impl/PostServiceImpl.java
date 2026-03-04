@@ -8,7 +8,9 @@ import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
 import org.springframework.stereotype.Service;
-
+import org.springframework.core.io.ClassPathResource;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 @Service
@@ -81,5 +83,20 @@ public class PostServiceImpl implements PostService {
     @Override
     public boolean updatePost(long id, UpdatePostRequest request) {
         return postDao.updateById(id, request);
+    }
+
+    @Override
+    public boolean exists(long id) {
+        return postDao.findById(id).isPresent();
+    }
+
+    @Override
+    public byte[] getImage(long id) {
+        ClassPathResource resource = new ClassPathResource("static/images/default-post.png");
+        try (InputStream in = resource.getInputStream()) {
+            return in.readAllBytes();
+        } catch (IOException e) {
+            throw new IllegalStateException("Не удалось прочитать default-post.png", e);
+        }
     }
 }

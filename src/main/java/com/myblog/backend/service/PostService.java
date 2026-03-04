@@ -10,4 +10,6 @@ public interface PostService {
     PostPreviewResponse createPost(CreatePostRequest request);
     void deletePost(long id);
     boolean updatePost(long id, UpdatePostRequest request);
+    boolean exists(long id);
+    byte[] getImage(long id);
 }

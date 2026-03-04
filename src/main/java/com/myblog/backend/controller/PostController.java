@@ -5,7 +5,9 @@ import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,5 +50,20 @@ public class PostController {
         return updated
                 ? ResponseEntity.noContent().build()      // 204
                 : ResponseEntity.notFound().build();      // 404
+    }
+
+    @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getImage(@PathVariable("id") Long id) {
+        if (!postService.exists(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] bytes = postService.getImage(id);
+        if (bytes == null || bytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(bytes);
     }
 }
