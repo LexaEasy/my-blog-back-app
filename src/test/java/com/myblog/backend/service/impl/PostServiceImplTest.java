@@ -149,4 +149,54 @@ class PostServiceImplTest {
         assertFalse(result);
         verify(postDao, times(1)).updateById(999L, request);
     }
+
+    @Test
+    void getPostById_shouldReturnMappedDto_whenPostExists() {
+        Post post = new Post(5L, "Пятый пост", "Текст 5", 10, 2);
+        when(postDao.findById(5L)).thenReturn(java.util.Optional.of(post));
+
+        java.util.Optional<PostPreviewResponse> result = postService.getPostById(5L);
+
+        assertTrue(result.isPresent());
+        assertEquals(5L, result.get().id());
+        assertEquals("Пятый пост", result.get().title());
+        verify(postDao, times(1)).findById(5L);
+    }
+
+    @Test
+    void getPostById_shouldReturnEmpty_whenPostNotExists() {
+        when(postDao.findById(999L)).thenReturn(Optional.empty());
+
+        Optional<PostPreviewResponse> result = postService.getPostById(999L);
+
+        assertTrue(result.isEmpty());
+        verify(postDao, times(1)).findById(999L);
+    }
+
+    @Test
+    void exists_shouldReturnTrue_whenPostExists() {
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+
+        boolean result = postService.exists(1L);
+
+        assertTrue(result);
+        verify(postDao, times(1)).findById(1L);
+    }
+
+    @Test
+    void exists_shouldReturnFalse_whenPostNotExists() {
+        when(postDao.findById(1L)).thenReturn(Optional.empty());
+
+        boolean result = postService.exists(1L);
+
+        assertFalse(result);
+        verify(postDao, times(1)).findById(1L);
+    }
+
+    @Test
+    void getImage_shouldReturnNonEmptyDefaultImage() {
+        byte[] bytes = postService.getImage(1L);
+
+        assertTrue(bytes != null && bytes.length > 0);
+    }
 }

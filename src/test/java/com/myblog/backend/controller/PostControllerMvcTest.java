@@ -26,8 +26,8 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +57,7 @@ class PostControllerMvcTest {
 
     @BeforeEach
     void setUp() {
+        reset(postService, commentService);
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
 
@@ -214,7 +215,7 @@ class PostControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("[]"));
 
-        verify(commentService, atLeastOnce()).getByPostId(5L);
+        verify(commentService, times(1)).getByPostId(5L);
     }
 
     @Test
@@ -233,6 +234,6 @@ class PostControllerMvcTest {
                 .andExpect(jsonPath("$[1].id").value(2))
                 .andExpect(jsonPath("$[1].text").value("Второй комментарий"));
 
-        verify(commentService, atLeastOnce()).getByPostId(5L);
+        verify(commentService, times(1)).getByPostId(5L);
     }
 }

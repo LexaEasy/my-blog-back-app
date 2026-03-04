@@ -119,4 +119,23 @@ class PostDaoJdbcTemplateTest {
 
         assertFalse(updated);
     }
+
+    @Test
+    void findById_shouldReturnPost_whenIdExists() {
+        long id = postDao.save("findById title", "findById text");
+
+        java.util.Optional<Post> result = postDao.findById(id);
+
+        assertTrue(result.isPresent());
+        assertEquals(id, result.get().getId());
+        assertEquals("findById title", result.get().getTitle());
+        assertEquals("findById text", result.get().getText());
+    }
+
+    @Test
+    void findById_shouldReturnEmpty_whenIdDoesNotExist() {
+        java.util.Optional<Post> result = postDao.findById(999_999L);
+
+        assertTrue(result.isEmpty());
+    }
 }
