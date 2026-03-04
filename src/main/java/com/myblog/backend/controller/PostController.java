@@ -10,14 +10,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.myblog.backend.model.dto.response.CommentResponse;
+import com.myblog.backend.service.CommentService;
+import java.util.Collections;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
     private final PostService postService;
+    private final CommentService commentService;
 
-    public PostController(PostService postService) {
+    public PostController(PostService postService, CommentService commentService) {
         this.postService = postService;
+        this.commentService = commentService;
     }
 
     @GetMapping
@@ -65,5 +71,17 @@ public class PostController {
                 .contentType(MediaType.IMAGE_PNG)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(bytes);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PostPreviewResponse> getPostById(@PathVariable long id) {
+        return postService.getPostById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<CommentResponse> getComments(@PathVariable long id) {
+        return commentService.getByPostId(id);
     }
 }

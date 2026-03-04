@@ -1,6 +1,7 @@
 package com.myblog.backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.myblog.backend.service.CommentService;
 import com.myblog.backend.service.PostService;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,12 @@ public class ControllerTestConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    @Primary
+    public CommentService commentService() {
+        return Mockito.mock(CommentService.class);
     }
 }
 

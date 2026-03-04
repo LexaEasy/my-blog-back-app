@@ -12,6 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -98,5 +99,18 @@ public class PostServiceImpl implements PostService {
         } catch (IOException e) {
             throw new IllegalStateException("Не удалось прочитать default-post.png", e);
         }
+    }
+
+    @Override
+    public Optional<PostPreviewResponse> getPostById(long id) {
+        return postDao.findById(id)
+                .map(p -> new PostPreviewResponse(
+                        p.getId(),
+                        p.getTitle(),
+                        p.getText(),
+                        List.of(),
+                        p.getLikesCount(),
+                        p.getCommentsCount()
+                ));
     }
 }

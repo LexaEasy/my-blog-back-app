@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myblog.backend.config.ControllerTestConfig;
 import com.myblog.backend.config.WebConfig;
 import com.myblog.backend.model.dto.request.UpdatePostRequest;
+import com.myblog.backend.model.dto.response.CommentResponse;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
+import com.myblog.backend.service.CommentService;
 import com.myblog.backend.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +51,9 @@ class PostControllerMvcTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private CommentService commentService;
 
     @BeforeEach
     void setUp() {
@@ -176,5 +182,57 @@ class PostControllerMvcTest {
 
         verify(postService, times(1)).exists(999L);
         verify(postService, never()).getImage(999L);
+    }
+
+    @Test
+    void getPostById_shouldReturn200AndJson_whenExists() throws Exception {
+        PostPreviewResponse response = new PostPreviewResponse(
+                5L, "Пятый пост", "Текст 5", List.of(), 0, 0
+        );
+        when(postService.getPostById(5L)).thenReturn(java.util.Optional.of(response));
+
+        mockMvc.perform(get("/api/posts/{id}", 5L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.title").value("Пятый пост"));
+    }
+
+    @Test
+    void getPostById_shouldReturn404_whenNotExists() throws Exception {
+        when(postService.getPostById(999L)).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/posts/{id}", 999L))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getComments_shouldReturnEmptyArray() throws Exception {
+        when(commentService.getByPostId(5L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/posts/{id}/comments", 5L))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json("[]"));
+
+        verify(commentService, atLeastOnce()).getByPostId(5L);
+    }
+
+    @Test
+    void getComments_shouldReturnArrayWithItems() throws Exception {
+        List<CommentResponse> comments = List.of(
+                new CommentResponse(1L, "Первый комментарий"),
+                new CommentResponse(2L, "Второй комментарий")
+        );
+        when(commentService.getByPostId(5L)).thenReturn(comments);
+
+        mockMvc.perform(get("/api/posts/{id}/comments", 5L))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].text").value("Первый комментарий"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].text").value("Второй комментарий"));
+
+        verify(commentService, atLeastOnce()).getByPostId(5L);
     }
 }
