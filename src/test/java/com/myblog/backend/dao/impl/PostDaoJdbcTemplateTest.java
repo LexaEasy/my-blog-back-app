@@ -25,6 +25,10 @@ class PostDaoJdbcTemplateTest {
 
     @Test
     void findAll_shouldReturnFirstPage() {
+        postDao.save("Пост A", "Текст A");
+        postDao.save("Пост B", "Текст B");
+        postDao.save("Пост C", "Текст C");
+
         List<Post> posts = postDao.findAll("", 1, 2);
 
         assertEquals(2, posts.size());
@@ -32,20 +36,27 @@ class PostDaoJdbcTemplateTest {
 
     @Test
     void findAll_shouldFilterBySearch() {
-        List<Post> posts = postDao.findAll("первый", 1, 10);
+        String marker = "marker_find_all";
+        postDao.save("Заголовок " + marker, "Обычный текст");
+        postDao.save("Другой пост", "Текст без маркера");
+
+        List<Post> posts = postDao.findAll(marker, 1, 10);
 
         assertFalse(posts.isEmpty());
         assertTrue(posts.stream().allMatch(p ->
-                p.getTitle().toLowerCase().contains("первый")
-                        || p.getText().toLowerCase().contains("первый")
+                p.getTitle().toLowerCase().contains(marker)
+                        || p.getText().toLowerCase().contains(marker)
         ));
     }
 
     @Test
     void count_shouldReturnTotalForEmptySearch() {
+        int before = postDao.count("");
+        postDao.save("Count title", "Count text");
+
         int total = postDao.count("");
 
-        assertTrue(total >= 1);
+        assertEquals(before + 1, total);
     }
 
     @Test
@@ -81,8 +92,7 @@ class PostDaoJdbcTemplateTest {
 
     @Test
     void updateById_shouldReturnTrue_andChangeData_whenIdExists() {
-        // Берём существующий пост из schema.sql (обычно id=1 есть)
-        long id = 1L;
+        long id = postDao.save("ORIGINAL_TITLE", "ORIGINAL_TEXT");
         UpdatePostRequest request = new UpdatePostRequest(
                 "UPDATED_TITLE",
                 "UPDATED_TEXT",
@@ -94,11 +104,8 @@ class PostDaoJdbcTemplateTest {
 
         assertTrue(updated);
 
-        List<Post> page = postDao.findAll("", 1, 50);
-        Post changed = page.stream()
-                .filter(p -> p.getId() == id)
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("Пост с id=1 не найден после update"));
+        Post changed = postDao.findById(id)
+                .orElseThrow(() -> new AssertionError("Пост не найден после update"));
 
         assertEquals("UPDATED_TITLE", changed.getTitle());
         assertEquals("UPDATED_TEXT", changed.getText());
@@ -137,5 +144,21 @@ class PostDaoJdbcTemplateTest {
         java.util.Optional<Post> result = postDao.findById(999_999L);
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void likes_shouldAllowOnlyOneLikePerUser_andUpdateCount() {
+        long postId = postDao.save("Likes post", "Likes text");
+
+        assertTrue(postDao.addLike(postId, "user-1"));
+        assertFalse(postDao.addLike(postId, "user-1"));
+        assertTrue(postDao.addLike(postId, "user-2"));
+
+        assertEquals(2, postDao.getLikesCount(postId));
+
+        assertTrue(postDao.removeLike(postId, "user-1"));
+        assertFalse(postDao.removeLike(postId, "user-1"));
+
+        assertEquals(1, postDao.getLikesCount(postId));
     }
 }

@@ -16,4 +16,8 @@ public interface PostDao {
     boolean deleteById(long id);
 
     boolean updateById(long id, UpdatePostRequest request);
+
+    boolean addLike(long postId, String userKey);
+    boolean removeLike(long postId, String userKey);
+    int getLikesCount(long postId);
 }

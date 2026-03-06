@@ -24,6 +24,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -159,6 +160,52 @@ class PostControllerMvcTest {
     }
 
     @Test
+    void addLike_shouldReturnActualCount() throws Exception {
+        when(postService.addLike(1L, "user-1")).thenReturn(7);
+
+        mockMvc.perform(post("/api/posts/{id}/likes", 1L)
+                        .header("X-User-Id", "user-1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("7"));
+
+        verify(postService, times(1)).addLike(1L, "user-1");
+    }
+
+    @Test
+    void removeLike_shouldReturnActualCount() throws Exception {
+        when(postService.removeLike(1L, "user-1")).thenReturn(6);
+
+        mockMvc.perform(delete("/api/posts/{id}/likes", 1L)
+                        .header("X-User-Id", "user-1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("6"));
+
+        verify(postService, times(1)).removeLike(1L, "user-1");
+    }
+
+    @Test
+    void addLike_shouldUseFallbackUserKey_whenHeaderMissing() throws Exception {
+        when(postService.addLike(eq(1L), anyString())).thenReturn(1);
+
+        mockMvc.perform(post("/api/posts/{id}/likes", 1L))
+                .andExpect(status().isOk())
+                .andExpect(content().string("1"));
+
+        verify(postService, times(1)).addLike(eq(1L), anyString());
+    }
+
+    @Test
+    void getLikesCount_shouldReturnActualCount() throws Exception {
+        when(postService.getLikesCount(1L)).thenReturn(9);
+
+        mockMvc.perform(get("/api/posts/{id}/likes", 1L))
+                .andExpect(status().isOk())
+                .andExpect(content().string("9"));
+
+        verify(postService, times(1)).getLikesCount(1L);
+    }
+
+    @Test
     void getImage_shouldReturn200AndPng_whenPostExists() throws Exception {
         byte[] image = new byte[]{1, 2, 3, 4};
         when(postService.exists(1L)).thenReturn(true);
@@ -253,7 +300,6 @@ class PostControllerMvcTest {
         verify(commentService, times(1)).add(5L, "Новый комментарий");
     }
 
-
     @Test
     void addComment_shouldReturn400AndMessage_whenTextIsInvalid() throws Exception {
         when(commentService.add(5L, "   "))
@@ -338,5 +384,3 @@ class PostControllerMvcTest {
         verify(commentService, times(1)).delete(5L, 999L);
     }
 }
-
-

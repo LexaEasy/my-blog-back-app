@@ -8,6 +8,7 @@ import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.CommentService;
 import com.myblog.backend.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -68,6 +69,24 @@ public class PostController {
                 : ResponseEntity.notFound().build();
     }
 
+    @PostMapping("/{id}/likes")
+    public ResponseEntity<Integer> addLike(@PathVariable long id, HttpServletRequest request) {
+        int likesCount = postService.addLike(id, resolveUserKey(request));
+        return ResponseEntity.ok(likesCount);
+    }
+
+    @DeleteMapping("/{id}/likes")
+    public ResponseEntity<Integer> removeLike(@PathVariable long id, HttpServletRequest request) {
+        int likesCount = postService.removeLike(id, resolveUserKey(request));
+        return ResponseEntity.ok(likesCount);
+    }
+
+    @GetMapping("/{id}/likes")
+    public ResponseEntity<Integer> getLikesCount(@PathVariable long id) {
+        int likesCount = postService.getLikesCount(id);
+        return ResponseEntity.ok(likesCount);
+    }
+
     @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> getImage(@PathVariable("id") Long id) {
         if (!postService.exists(id)) {
@@ -126,5 +145,14 @@ public class PostController {
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
-}
 
+    private String resolveUserKey(HttpServletRequest request) {
+        String explicitUser = request.getHeader("X-User-Id");
+        if (explicitUser != null && !explicitUser.isBlank()) {
+            return explicitUser.trim();
+        }
+        String remoteAddr = request.getRemoteAddr() == null ? "unknown-ip" : request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent") == null ? "unknown-agent" : request.getHeader("User-Agent");
+        return remoteAddr + "|" + userAgent;
+    }
+}

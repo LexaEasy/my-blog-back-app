@@ -199,4 +199,51 @@ class PostServiceImplTest {
 
         assertTrue(bytes != null && bytes.length > 0);
     }
+
+    @Test
+    void addLike_shouldReturnActualCount_whenLikeCreated() {
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+        when(postDao.addLike(1L, "user-1")).thenReturn(true);
+        when(postDao.getLikesCount(1L)).thenReturn(1);
+
+        int count = postService.addLike(1L, "user-1");
+
+        assertEquals(1, count);
+        verify(postDao, times(1)).addLike(1L, "user-1");
+        verify(postDao, times(1)).getLikesCount(1L);
+    }
+
+    @Test
+    void addLike_shouldReturnActualCount_whenDuplicateLike() {
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 1, 0)));
+        when(postDao.addLike(1L, "user-1")).thenReturn(false);
+        when(postDao.getLikesCount(1L)).thenReturn(1);
+
+        int count = postService.addLike(1L, "user-1");
+
+        assertEquals(1, count);
+        verify(postDao, times(1)).addLike(1L, "user-1");
+        verify(postDao, times(1)).getLikesCount(1L);
+    }
+
+    @Test
+    void removeLike_shouldReturnActualCount_whenLikeRemoved() {
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 2, 0)));
+        when(postDao.removeLike(1L, "user-1")).thenReturn(true);
+        when(postDao.getLikesCount(1L)).thenReturn(1);
+
+        int count = postService.removeLike(1L, "user-1");
+
+        assertEquals(1, count);
+        verify(postDao, times(1)).removeLike(1L, "user-1");
+        verify(postDao, times(1)).getLikesCount(1L);
+    }
+
+    @Test
+    void getLikesCount_shouldThrow_whenPostNotFound() {
+        when(postDao.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> postService.getLikesCount(999L));
+    }
 }
+

@@ -15,4 +15,8 @@ public interface PostService {
     boolean exists(long id);
     byte[] getImage(long id);
     Optional<PostPreviewResponse> getPostById(long id);
+
+    int addLike(long postId, String userKey);
+    int removeLike(long postId, String userKey);
+    int getLikesCount(long postId);
 }

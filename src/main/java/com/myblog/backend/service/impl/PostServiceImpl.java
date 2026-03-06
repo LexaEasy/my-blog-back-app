@@ -7,8 +7,10 @@ import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
-import org.springframework.stereotype.Service;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -112,5 +114,33 @@ public class PostServiceImpl implements PostService {
                         p.getLikesCount(),
                         p.getCommentsCount()
                 ));
+    }
+
+    @Override
+    @Transactional
+    public int addLike(long postId, String userKey) {
+        ensurePostExists(postId);
+        postDao.addLike(postId, userKey);
+        return postDao.getLikesCount(postId);
+    }
+
+    @Override
+    @Transactional
+    public int removeLike(long postId, String userKey) {
+        ensurePostExists(postId);
+        postDao.removeLike(postId, userKey);
+        return postDao.getLikesCount(postId);
+    }
+
+    @Override
+    public int getLikesCount(long postId) {
+        ensurePostExists(postId);
+        return postDao.getLikesCount(postId);
+    }
+
+    private void ensurePostExists(long postId) {
+        if (postDao.findById(postId).isEmpty()) {
+            throw new IllegalArgumentException("Пост с id=" + postId + " не найден");
+        }
     }
 }

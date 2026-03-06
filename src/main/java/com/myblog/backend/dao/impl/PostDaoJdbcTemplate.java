@@ -3,6 +3,7 @@ package com.myblog.backend.dao.impl;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
 import com.myblog.backend.model.dto.request.UpdatePostRequest;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -121,5 +122,61 @@ public class PostDaoJdbcTemplate implements PostDao {
                 id
         );
         return updated > 0;
+    }
+
+    @Override
+    public boolean addLike(long postId, String userKey) {
+        try {
+            int inserted = jdbcTemplate.update(
+                    "insert into post_likes(post_id, user_key) values (?, ?)",
+                    postId,
+                    userKey
+            );
+            if (inserted == 0) {
+                return false;
+            }
+            jdbcTemplate.update(
+                    "update posts set likes_count = likes_count + 1 where id = ?",
+                    postId
+            );
+            return true;
+        } catch (DuplicateKeyException ex) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean removeLike(long postId, String userKey) {
+        int deleted = jdbcTemplate.update(
+                "delete from post_likes where post_id = ? and user_key = ?",
+                postId,
+                userKey
+        );
+        if (deleted == 0) {
+            return false;
+        }
+
+        jdbcTemplate.update(
+                """
+                update posts
+                set likes_count = case
+                    when likes_count > 0 then likes_count - 1
+                    else 0
+                end
+                where id = ?
+                """,
+                postId
+        );
+        return true;
+    }
+
+    @Override
+    public int getLikesCount(long postId) {
+        Integer value = jdbcTemplate.queryForObject(
+                "select likes_count from posts where id = ?",
+                Integer.class,
+                postId
+        );
+        return value == null ? 0 : value;
     }
 }
