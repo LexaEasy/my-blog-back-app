@@ -1,18 +1,28 @@
 package com.myblog.backend.controller;
 
+import com.myblog.backend.model.dto.request.CreateCommentRequest;
 import com.myblog.backend.model.dto.request.CreatePostRequest;
 import com.myblog.backend.model.dto.request.UpdatePostRequest;
+import com.myblog.backend.model.dto.response.CommentResponse;
 import com.myblog.backend.model.dto.response.PostPreviewResponse;
 import com.myblog.backend.model.dto.response.PostsPageResponse;
+import com.myblog.backend.service.CommentService;
 import com.myblog.backend.service.PostService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.myblog.backend.model.dto.response.CommentResponse;
-import com.myblog.backend.service.CommentService;
-import java.util.Collections;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 @RestController
@@ -54,8 +64,8 @@ public class PostController {
     ) {
         boolean updated = postService.updatePost(id, request);
         return updated
-                ? ResponseEntity.noContent().build()      // 204
-                : ResponseEntity.notFound().build();      // 404
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
     @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_PNG_VALUE)
@@ -84,4 +94,37 @@ public class PostController {
     public List<CommentResponse> getComments(@PathVariable long id) {
         return commentService.getByPostId(id);
     }
+
+    @PostMapping("/{id}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommentResponse addComment(
+            @PathVariable long id,
+            @RequestBody CreateCommentRequest request
+    ) {
+        return commentService.add(id, request.getText());
+    }
+
+    @PutMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<CommentResponse> updateComment(
+            @PathVariable long postId,
+            @PathVariable long commentId,
+            @RequestBody CreateCommentRequest request
+    ) {
+        CommentResponse updated = commentService.update(postId, commentId, request.getText());
+        return updated == null
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable long postId,
+            @PathVariable long commentId
+    ) {
+        boolean deleted = commentService.delete(postId, commentId);
+        return deleted
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
+    }
 }
+

@@ -1,5 +1,6 @@
 package com.myblog.backend.config;
 
+import com.myblog.backend.dao.CommentDao;
 import com.myblog.backend.dao.PostDao;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
@@ -15,5 +16,11 @@ public class ServiceTestConfig {
     @Primary
     public PostDao mockPostDao() {
         return Mockito.mock(PostDao.class);
+    }
+
+    @Bean
+    @Primary
+    public CommentDao mockCommentDao() {
+        return Mockito.mock(CommentDao.class);
     }
 }

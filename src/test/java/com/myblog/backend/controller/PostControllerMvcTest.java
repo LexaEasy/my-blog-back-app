@@ -18,8 +18,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.context.WebApplicationContext;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 
@@ -31,7 +31,10 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,13 +50,13 @@ class PostControllerMvcTest {
     @Autowired
     private PostService postService;
 
-    private MockMvc mockMvc;
-
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
     private CommentService commentService;
+
+    private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
@@ -119,8 +122,6 @@ class PostControllerMvcTest {
 
     @Test
     void updatePost_shouldReturn204_whenUpdated() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
-
         UpdatePostRequest request = new UpdatePostRequest(
                 "Новый title",
                 "Новый text",
@@ -140,8 +141,6 @@ class PostControllerMvcTest {
 
     @Test
     void updatePost_shouldReturn404_whenPostNotFound() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
-
         UpdatePostRequest request = new UpdatePostRequest(
                 "Новый title",
                 "Новый text",
@@ -236,4 +235,108 @@ class PostControllerMvcTest {
 
         verify(commentService, times(1)).getByPostId(5L);
     }
+
+    @Test
+    void addComment_shouldReturn201AndJson() throws Exception {
+        when(commentService.add(5L, "Новый комментарий"))
+                .thenReturn(new CommentResponse(11L, "Новый комментарий"));
+
+        mockMvc.perform(post("/api/posts/{id}/comments", 5L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"text":"Новый комментарий"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(11))
+                .andExpect(jsonPath("$.text").value("Новый комментарий"));
+
+        verify(commentService, times(1)).add(5L, "Новый комментарий");
+    }
+
+
+    @Test
+    void addComment_shouldReturn400AndMessage_whenTextIsInvalid() throws Exception {
+        when(commentService.add(5L, "   "))
+                .thenThrow(new IllegalArgumentException("text комментария не должен быть пустым"));
+
+        mockMvc.perform(post("/api/posts/{id}/comments", 5L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"text":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("text комментария не должен быть пустым"));
+
+        verify(commentService, times(1)).add(5L, "   ");
+    }
+
+    @Test
+    void updateComment_shouldReturn200AndJson_whenUpdated() throws Exception {
+        when(commentService.update(5L, 9L, "Обновлённый комментарий"))
+                .thenReturn(new CommentResponse(9L, "Обновлённый комментарий"));
+
+        mockMvc.perform(put("/api/posts/{postId}/comments/{commentId}", 5L, 9L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"text":"Обновлённый комментарий"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(9))
+                .andExpect(jsonPath("$.text").value("Обновлённый комментарий"));
+
+        verify(commentService, times(1)).update(5L, 9L, "Обновлённый комментарий");
+    }
+
+    @Test
+    void updateComment_shouldReturn404_whenCommentNotFound() throws Exception {
+        when(commentService.update(5L, 999L, "Обновлённый комментарий"))
+                .thenReturn(null);
+
+        mockMvc.perform(put("/api/posts/{postId}/comments/{commentId}", 5L, 999L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"text":"Обновлённый комментарий"}
+                                """))
+                .andExpect(status().isNotFound());
+
+        verify(commentService, times(1)).update(5L, 999L, "Обновлённый комментарий");
+    }
+
+    @Test
+    void updateComment_shouldReturn400AndMessage_whenTextIsInvalid() throws Exception {
+        when(commentService.update(5L, 9L, "   "))
+                .thenThrow(new IllegalArgumentException("text комментария не должен быть пустым"));
+
+        mockMvc.perform(put("/api/posts/{postId}/comments/{commentId}", 5L, 9L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"text":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("text комментария не должен быть пустым"));
+
+        verify(commentService, times(1)).update(5L, 9L, "   ");
+    }
+
+    @Test
+    void deleteComment_shouldReturn204_whenDeleted() throws Exception {
+        when(commentService.delete(5L, 9L)).thenReturn(true);
+
+        mockMvc.perform(delete("/api/posts/{postId}/comments/{commentId}", 5L, 9L))
+                .andExpect(status().isNoContent());
+
+        verify(commentService, times(1)).delete(5L, 9L);
+    }
+
+    @Test
+    void deleteComment_shouldReturn404_whenCommentNotFound() throws Exception {
+        when(commentService.delete(5L, 999L)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/posts/{postId}/comments/{commentId}", 5L, 999L))
+                .andExpect(status().isNotFound());
+
+        verify(commentService, times(1)).delete(5L, 999L);
+    }
 }
+
+
