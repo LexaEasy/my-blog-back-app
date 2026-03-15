@@ -25,17 +25,34 @@ public class PostDaoJdbcTemplate implements PostDao {
     }
 
     @Override
-    public List<Post> findAll(String search, int pageNumber, int pageSize) {
+    public List<Post> findAll(String titlePart, List<String> tags, int pageNumber, int pageSize) {
         int offset = (pageNumber - 1) * pageSize;
-        String like = "%" + search.toLowerCase() + "%";
-        return jdbcTemplate.query(
-                """
+        StringBuilder sql = new StringBuilder("""
                 select id, title, text, tags, likes_count, comments_count
                 from posts
-                where lower(title) like ? or lower(text) like ? or lower(coalesce(tags, '')) like ?
-                order by id desc
-                limit ? offset ?
-                """,
+                where 1 = 1
+                """);
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (titlePart != null && !titlePart.isBlank()) {
+            sql.append(" and lower(title) like ? ");
+            params.add("%" + titlePart.toLowerCase() + "%");
+        }
+
+        for (String tag : tags) {
+            sql.append("""
+                     and concat(' ', replace(replace(replace(lower(coalesce(tags, '')), char(10), ' '), char(13), ' '), char(9), ' '), ' ')
+                         like ?
+                    """);
+            params.add("% " + tag.toLowerCase() + " %");
+        }
+
+        sql.append(" order by id desc limit ? offset ? ");
+        params.add(pageSize);
+        params.add(offset);
+
+        return jdbcTemplate.query(
+                sql.toString(),
                 (rs, rowNum) -> new Post(
                         rs.getLong("id"),
                         rs.getString("title"),
@@ -44,17 +61,36 @@ public class PostDaoJdbcTemplate implements PostDao {
                         rs.getInt("likes_count"),
                         rs.getInt("comments_count")
                 ),
-                like, like, like, pageSize, offset
+                params.toArray()
         );
     }
 
     @Override
-    public int count(String search) {
-        String like = "%" + search.toLowerCase() + "%";
+    public int count(String titlePart, List<String> tags) {
+        StringBuilder sql = new StringBuilder("""
+                select count(*)
+                from posts
+                where 1 = 1
+                """);
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (titlePart != null && !titlePart.isBlank()) {
+            sql.append(" and lower(title) like ? ");
+            params.add("%" + titlePart.toLowerCase() + "%");
+        }
+
+        for (String tag : tags) {
+            sql.append("""
+                     and concat(' ', replace(replace(replace(lower(coalesce(tags, '')), char(10), ' '), char(13), ' '), char(9), ' '), ' ')
+                         like ?
+                    """);
+            params.add("% " + tag.toLowerCase() + " %");
+        }
+
         Integer value = jdbcTemplate.queryForObject(
-                "select count(*) from posts where lower(title) like ? or lower(text) like ? or lower(coalesce(tags, '')) like ?",
+                sql.toString(),
                 Integer.class,
-                like, like, like
+                params.toArray()
         );
         return value == null ? 0 : value;
     }

@@ -49,11 +49,11 @@ class PostServiceImplTest {
 
     @Test
     void getPosts_success() {
-        when(postDao.findAll("", 1, 2)).thenReturn(List.of(
+        when(postDao.findAll("", List.of(), 1, 2)).thenReturn(List.of(
                 new Post(1L, "Первый пост", "Текст 1", List.of("java", "spring"), 12, 3),
                 new Post(2L, "Второй пост", "Текст 2", List.of("backend"), 5, 1)
         ));
-        when(postDao.count("")).thenReturn(4);
+        when(postDao.count("", List.of())).thenReturn(4);
 
         PostsPageResponse response = postService.getPosts("", 1, 2);
 
@@ -62,14 +62,14 @@ class PostServiceImplTest {
         assertTrue(response.hasNext());
         assertEquals(2, response.lastPage());
 
-        verify(postDao, times(1)).findAll("", 1, 2);
-        verify(postDao, times(1)).count("");
+        verify(postDao, times(1)).findAll("", List.of(), 1, 2);
+        verify(postDao, times(1)).count("", List.of());
     }
 
     @Test
     void getPosts_emptySearchResult() {
-        when(postDao.findAll("zzz", 1, 5)).thenReturn(List.of());
-        when(postDao.count("zzz")).thenReturn(0);
+        when(postDao.findAll("zzz", List.of(), 1, 5)).thenReturn(List.of());
+        when(postDao.count("zzz", List.of())).thenReturn(0);
 
         PostsPageResponse response = postService.getPosts("zzz", 1, 5);
 
@@ -78,8 +78,30 @@ class PostServiceImplTest {
         assertFalse(response.hasNext());
         assertEquals(1, response.lastPage());
 
-        verify(postDao, times(1)).findAll("zzz", 1, 5);
-        verify(postDao, times(1)).count("zzz");
+        verify(postDao, times(1)).findAll("zzz", List.of(), 1, 5);
+        verify(postDao, times(1)).count("zzz", List.of());
+    }
+
+    @Test
+    void getPosts_shouldSplitSearchIntoTitleAndTags() {
+        when(postDao.findAll("backend guide", List.of("java", "spring"), 1, 5)).thenReturn(List.of());
+        when(postDao.count("backend guide", List.of("java", "spring"))).thenReturn(0);
+
+        postService.getPosts("  backend   guide   #java   #spring  ", 1, 5);
+
+        verify(postDao, times(1)).findAll("backend guide", List.of("java", "spring"), 1, 5);
+        verify(postDao, times(1)).count("backend guide", List.of("java", "spring"));
+    }
+
+    @Test
+    void getPosts_shouldIgnoreEmptyWordsAndBlankTags() {
+        when(postDao.findAll("", List.of("java"), 1, 5)).thenReturn(List.of());
+        when(postDao.count("", List.of("java"))).thenReturn(0);
+
+        postService.getPosts("   #java   #   ", 1, 5);
+
+        verify(postDao, times(1)).findAll("", List.of("java"), 1, 5);
+        verify(postDao, times(1)).count("", List.of("java"));
     }
 
     @Test

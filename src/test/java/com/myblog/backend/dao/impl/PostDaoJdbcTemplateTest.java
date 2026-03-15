@@ -29,7 +29,7 @@ class PostDaoJdbcTemplateTest {
         postDao.save("Пост B", "Текст B", List.of("spring"));
         postDao.save("Пост C", "Текст C", List.of("backend"));
 
-        List<Post> posts = postDao.findAll("", 1, 2);
+        List<Post> posts = postDao.findAll("", List.of(), 1, 2);
 
         assertEquals(2, posts.size());
     }
@@ -40,42 +40,39 @@ class PostDaoJdbcTemplateTest {
         postDao.save("Заголовок " + marker, "Обычный текст", List.of("java"));
         postDao.save("Другой пост", "Текст без маркера", List.of("backend"));
 
-        List<Post> posts = postDao.findAll(marker, 1, 10);
+        List<Post> posts = postDao.findAll(marker, List.of(), 1, 10);
 
         assertFalse(posts.isEmpty());
-        assertTrue(posts.stream().allMatch(p ->
-                p.getTitle().toLowerCase().contains(marker)
-                        || p.getText().toLowerCase().contains(marker)
-        ));
+        assertTrue(posts.stream().allMatch(p -> p.getTitle().toLowerCase().contains(marker)));
     }
 
     @Test
     void count_shouldReturnTotalForEmptySearch() {
-        int before = postDao.count("");
+        int before = postDao.count("", List.of());
         postDao.save("Count title", "Count text", List.of("count"));
 
-        int total = postDao.count("");
+        int total = postDao.count("", List.of());
 
         assertEquals(before + 1, total);
     }
 
     @Test
     void count_shouldReturnZeroForUnknownSearch() {
-        int total = postDao.count("zzz_not_found_zzz");
+        int total = postDao.count("zzz_not_found_zzz", List.of());
 
         assertEquals(0, total);
     }
 
     @Test
     void save_shouldInsertPost() {
-        int before = postDao.count("");
+        int before = postDao.count("", List.of());
         long id = postDao.save("DAO пост", "DAO текст", List.of("java", "spring"));
 
         assertTrue(id > 0);
-        int after = postDao.count("");
+        int after = postDao.count("", List.of());
         assertEquals(before + 1, after);
 
-        List<Post> list = postDao.findAll("dao", 1, 10);
+        List<Post> list = postDao.findAll("dao", List.of(), 1, 10);
         assertTrue(list.stream().anyMatch(p -> p.getId() == id));
     }
 
@@ -186,9 +183,52 @@ class PostDaoJdbcTemplateTest {
     void findAll_shouldFindByTag_whenSearchMatchesTag() {
         postDao.save("Tag post", "Text", List.of("java", "spring"));
 
-        List<Post> posts = postDao.findAll("spring", 1, 10);
+        List<Post> posts = postDao.findAll("", List.of("spring"), 1, 10);
 
         assertFalse(posts.isEmpty());
         assertTrue(posts.stream().anyMatch(post -> post.getTags().contains("spring")));
+    }
+
+    @Test
+    void findAll_shouldRequireAllTags() {
+        postDao.save("Unique Java Spring", "Text", List.of("unique-java", "unique-spring"));
+        postDao.save("Unique Java Only", "Text", List.of("unique-java"));
+
+        List<Post> posts = postDao.findAll("", List.of("unique-java", "unique-spring"), 1, 10);
+
+        assertEquals(1, posts.size());
+        assertEquals("Unique Java Spring", posts.get(0).getTitle());
+    }
+
+    @Test
+    void findAll_shouldRequireTitleAndTagsTogether() {
+        postDao.save("Backend Guide", "Text", List.of("guide-java", "guide-spring"));
+        postDao.save("Backend Guide", "Text", List.of("guide-spring"));
+        postDao.save("Java Guide", "Text", List.of("guide-java", "guide-spring"));
+
+        List<Post> posts = postDao.findAll("backend guide", List.of("guide-java", "guide-spring"), 1, 10);
+
+        assertEquals(1, posts.size());
+        assertEquals("Backend Guide", posts.get(0).getTitle());
+    }
+
+    @Test
+    void findAll_shouldNotMatchTitleByTextContent() {
+        postDao.save("No marker here", "unique title phrase appears only in text", List.of("java"));
+
+        List<Post> posts = postDao.findAll("unique title phrase", List.of(), 1, 10);
+
+        assertTrue(posts.isEmpty());
+    }
+
+    @Test
+    void findAll_shouldMatchWholeTag_notSubstring() {
+        postDao.save("JavaScript post", "Text", List.of("javascript"));
+        postDao.save("Java post", "Text", List.of("java"));
+
+        List<Post> posts = postDao.findAll("", List.of("java"), 1, 10);
+
+        assertTrue(posts.stream().allMatch(post -> post.getTags().contains("java")));
+        assertTrue(posts.stream().noneMatch(post -> post.getTags().contains("javascript")));
     }
 }

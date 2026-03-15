@@ -14,9 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -28,8 +30,9 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostsPageResponse getPosts(String search, int pageNumber, int pageSize) {
-        List<Post> posts = postDao.findAll(search, pageNumber, pageSize);
-        int total = postDao.count(search);
+        SearchQuery query = parseSearchQuery(search);
+        List<Post> posts = postDao.findAll(query.titlePart(), query.tags(), pageNumber, pageSize);
+        int total = postDao.count(query.titlePart(), query.tags());
 
         int lastPage = (int) Math.ceil((double) total / pageSize);
         if (lastPage == 0) lastPage = 1;
@@ -196,6 +199,32 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    private SearchQuery parseSearchQuery(String rawSearch) {
+        if (rawSearch == null || rawSearch.isBlank()) {
+            return new SearchQuery("", List.of());
+        }
+
+        List<String> words = Arrays.stream(rawSearch.trim().split("\\s+"))
+                .map(String::trim)
+                .filter(word -> !word.isBlank())
+                .toList();
+
+        List<String> tags = words.stream()
+                .filter(word -> word.startsWith("#") && word.length() > 1)
+                .map(word -> word.substring(1).trim().toLowerCase())
+                .filter(word -> !word.isBlank())
+                .distinct()
+                .toList();
+
+        String titlePart = words.stream()
+                .filter(word -> !word.startsWith("#"))
+                .collect(Collectors.joining(" "))
+                .trim()
+                .toLowerCase();
+
+        return new SearchQuery(titlePart, tags);
+    }
+
     private List<String> normalizeTags(List<String> tags) {
         if (tags == null || tags.isEmpty()) {
             return List.of();
@@ -204,9 +233,12 @@ public class PostServiceImpl implements PostService {
                 .filter(tag -> tag != null && !tag.isBlank())
                 .map(String::trim)
                 .filter(tag -> !tag.isBlank())
-                .collect(java.util.stream.Collectors.collectingAndThen(
-                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toCollection(LinkedHashSet::new),
                         List::copyOf
                 ));
+    }
+
+    private record SearchQuery(String titlePart, List<String> tags) {
     }
 }

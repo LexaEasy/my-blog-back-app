@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostDao {
-    List<Post> findAll(String search, int pageNumber, int pageSize);
-    int count(String search);
+    List<Post> findAll(String titlePart, List<String> tags, int pageNumber, int pageSize);
+    int count(String titlePart, List<String> tags);
 
     long save(String title, String text, List<String> tags);
     Optional<Post> findById(long id);
