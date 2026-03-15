@@ -21,8 +21,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -59,14 +61,13 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updatePost(
+    public ResponseEntity<PostPreviewResponse> updatePost(
             @PathVariable long id,
             @RequestBody UpdatePostRequest request
     ) {
-        boolean updated = postService.updatePost(id, request);
-        return updated
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
+        return postService.updatePost(id, request)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/likes")
@@ -155,4 +156,19 @@ public class PostController {
         String userAgent = request.getHeader("User-Agent") == null ? "unknown-agent" : request.getHeader("User-Agent");
         return remoteAddr + "|" + userAgent;
     }
+
+    @RequestMapping(value = "/{id}/image", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ResponseEntity<String> uploadImage(
+            @PathVariable long id,
+            @RequestParam("image") MultipartFile image
+    ) {
+        if (image == null || image.isEmpty()) {
+            return ResponseEntity.badRequest().body("empty file");
+        }
+        boolean updated = postService.updateImage(id, image);
+        return updated
+                ? ResponseEntity.status(HttpStatus.CREATED).body("ok")
+                : ResponseEntity.notFound().build();
+    }
+
 }

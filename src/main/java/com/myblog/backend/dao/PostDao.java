@@ -20,4 +20,7 @@ public interface PostDao {
     boolean addLike(long postId, String userKey);
     boolean removeLike(long postId, String userKey);
     int getLikesCount(long postId);
+
+    Optional<byte[]> findImageById(long id);
+    boolean updateImageById(long id, byte[] image);
 }

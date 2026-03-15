@@ -179,4 +179,26 @@ public class PostDaoJdbcTemplate implements PostDao {
         );
         return value == null ? 0 : value;
     }
+
+    @Override
+    public Optional<byte[]> findImageById(long id) {
+        List<byte[]> list = jdbcTemplate.query(
+                "select image from posts where id = ?",
+                (rs, rowNum) -> rs.getBytes("image"),
+                id
+        );
+        return list.stream()
+                .filter(bytes -> bytes != null && bytes.length > 0)
+                .findFirst();
+    }
+
+    @Override
+    public boolean updateImageById(long id, byte[] image) {
+        int updated = jdbcTemplate.update(
+                "update posts set image = ? where id = ?",
+                image,
+                id
+        );
+        return updated > 0;
+    }
 }

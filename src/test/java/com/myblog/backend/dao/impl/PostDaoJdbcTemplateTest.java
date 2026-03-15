@@ -161,4 +161,20 @@ class PostDaoJdbcTemplateTest {
 
         assertEquals(1, postDao.getLikesCount(postId));
     }
+
+    @Test
+    void image_shouldBeStoredAndLoaded_whenUpdated() {
+        long postId = postDao.save("Image post", "Image text");
+        byte[] image = new byte[]{10, 20, 30};
+
+        boolean updated = postDao.updateImageById(postId, image);
+
+        assertTrue(updated);
+        byte[] stored = postDao.findImageById(postId)
+                .orElseThrow(() -> new AssertionError("Картинка поста не найдена"));
+        assertEquals(3, stored.length);
+        assertEquals(10, stored[0]);
+        assertEquals(20, stored[1]);
+        assertEquals(30, stored[2]);
+    }
 }

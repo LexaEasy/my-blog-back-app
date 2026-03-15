@@ -10,6 +10,7 @@ import com.myblog.backend.service.PostService;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,8 +85,35 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public boolean updatePost(long id, UpdatePostRequest request) {
-        return postDao.updateById(id, request);
+    public Optional<PostPreviewResponse> updatePost(long id, UpdatePostRequest request) {
+        Optional<Post> existingOpt = postDao.findById(id);
+        if (existingOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Post existing = existingOpt.get();
+
+        UpdatePostRequest normalized = new UpdatePostRequest(
+                request.getTitle(),
+                request.getText(),
+                existing.getLikesCount(),
+                existing.getCommentsCount()
+        );
+
+        boolean updated = postDao.updateById(id, normalized);
+        if (!updated) {
+            return Optional.empty();
+        }
+
+        return postDao.findById(id)
+                .map(p -> new PostPreviewResponse(
+                        p.getId(),
+                        p.getTitle(),
+                        p.getText(),
+                        List.of(),
+                        p.getLikesCount(),
+                        p.getCommentsCount()
+                ));
     }
 
     @Override
@@ -95,6 +123,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public byte[] getImage(long id) {
+        Optional<byte[]> storedImage = postDao.findImageById(id);
+        if (storedImage.isPresent()) {
+            return storedImage.get();
+        }
         ClassPathResource resource = new ClassPathResource("static/images/default-post.png");
         try (InputStream in = resource.getInputStream()) {
             return in.readAllBytes();
@@ -136,6 +168,23 @@ public class PostServiceImpl implements PostService {
     public int getLikesCount(long postId) {
         ensurePostExists(postId);
         return postDao.getLikesCount(postId);
+    }
+
+    @Override
+    @Transactional
+    public boolean updateImage(long id, MultipartFile image) {
+        if (postDao.findById(id).isEmpty()) {
+            return false;
+        }
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("empty file");
+        }
+
+        try {
+            return postDao.updateImageById(id, image.getBytes());
+        } catch (IOException e) {
+            throw new IllegalStateException("Не удалось прочитать загруженную картинку", e);
+        }
     }
 
     private void ensurePostExists(long postId) {

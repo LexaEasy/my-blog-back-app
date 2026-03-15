@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -122,20 +123,32 @@ class PostControllerMvcTest {
     }
 
     @Test
-    void updatePost_shouldReturn204_whenUpdated() throws Exception {
+    void updatePost_shouldReturn200AndJson_whenUpdated() throws Exception {
         UpdatePostRequest request = new UpdatePostRequest(
                 "Новый title",
                 "Новый text",
                 10,
                 2
         );
+        PostPreviewResponse response = new PostPreviewResponse(
+                1L,
+                "Новый title",
+                "Новый text",
+                List.of(),
+                12,
+                3
+        );
 
-        when(postService.updatePost(eq(1L), any(UpdatePostRequest.class))).thenReturn(true);
+        when(postService.updatePost(eq(1L), any(UpdatePostRequest.class)))
+                .thenReturn(java.util.Optional.of(response));
 
         mockMvc.perform(put("/api/posts/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.title").value("Новый title"))
+                .andExpect(jsonPath("$.text").value("Новый text"));
 
         verify(postService, times(1)).updatePost(eq(1L), any(UpdatePostRequest.class));
     }
@@ -149,7 +162,8 @@ class PostControllerMvcTest {
                 2
         );
 
-        when(postService.updatePost(eq(999L), any(UpdatePostRequest.class))).thenReturn(false);
+        when(postService.updatePost(eq(999L), any(UpdatePostRequest.class)))
+                .thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(put("/api/posts/{id}", 999L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -157,6 +171,60 @@ class PostControllerMvcTest {
                 .andExpect(status().isNotFound());
 
         verify(postService, times(1)).updatePost(eq(999L), any(UpdatePostRequest.class));
+    }
+
+    @Test
+    void uploadImage_shouldReturn201AndOk_whenImageUpdated() throws Exception {
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "cover.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[]{1, 2, 3}
+        );
+
+        when(postService.updateImage(eq(1L), any())).thenReturn(true);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/posts/{id}/image", 1L)
+                        .file(image))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("ok"));
+
+        verify(postService, times(1)).updateImage(eq(1L), any());
+    }
+
+    @Test
+    void uploadImage_shouldReturn404_whenPostNotFound() throws Exception {
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "cover.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[]{1, 2, 3}
+        );
+
+        when(postService.updateImage(eq(999L), any())).thenReturn(false);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/posts/{id}/image", 999L)
+                        .file(image))
+                .andExpect(status().isNotFound());
+
+        verify(postService, times(1)).updateImage(eq(999L), any());
+    }
+
+    @Test
+    void uploadImage_shouldReturn400AndText_whenFileEmpty() throws Exception {
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "empty.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[0]
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/posts/{id}/image", 1L)
+                        .file(image))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("empty file"));
+
+        verify(postService, never()).updateImage(eq(1L), any());
     }
 
     @Test
