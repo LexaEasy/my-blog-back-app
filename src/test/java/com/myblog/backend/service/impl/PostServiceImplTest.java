@@ -67,6 +67,20 @@ class PostServiceImplTest {
     }
 
     @Test
+    void getPosts_shouldTruncateLongTextForPreview() {
+        String longText = "a".repeat(140);
+        when(postDao.findAll("", List.of(), 1, 5)).thenReturn(List.of(
+                new Post(1L, "Первый пост", longText, List.of("java"), 0, 0)
+        ));
+        when(postDao.count("", List.of())).thenReturn(1);
+
+        PostsPageResponse response = postService.getPosts("", 1, 5);
+
+        assertEquals(129, response.posts().get(0).text().length());
+        assertTrue(response.posts().get(0).text().endsWith("…"));
+    }
+
+    @Test
     void getPosts_emptySearchResult() {
         when(postDao.findAll("zzz", List.of(), 1, 5)).thenReturn(List.of());
         when(postDao.count("zzz", List.of())).thenReturn(0);
@@ -147,6 +161,7 @@ class PostServiceImplTest {
     @Test
     void updatePost_shouldReturnUpdatedDto_whenDaoUpdatedRow() {
         UpdatePostRequest request = new UpdatePostRequest(
+                1L,
                 "Обновлённый заголовок",
                 "Обновлённый текст",
                 100,
@@ -174,6 +189,7 @@ class PostServiceImplTest {
     @Test
     void updatePost_shouldReturnEmpty_whenDaoFoundNothingToUpdate() {
         UpdatePostRequest request = new UpdatePostRequest(
+                999L,
                 "Любой заголовок",
                 "Любой текст",
                 1,

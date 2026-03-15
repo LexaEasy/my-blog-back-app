@@ -23,17 +23,37 @@ public class CommentDaoJdbcTemplate implements CommentDao {
     public List<CommentResponse> findByPostId(long postId) {
         return jdbcTemplate.query(
                 """
-                select id, text
+                select id, text, post_id
                 from comments
                 where post_id = ?
                 order by id asc
                 """,
                 (rs, rowNum) -> new CommentResponse(
                         rs.getLong("id"),
-                        rs.getString("text")
+                        rs.getString("text"),
+                        rs.getLong("post_id")
                 ),
                 postId
         );
+    }
+
+    @Override
+    public java.util.Optional<CommentResponse> findById(long postId, long commentId) {
+        List<CommentResponse> result = jdbcTemplate.query(
+                """
+                select id, text, post_id
+                from comments
+                where post_id = ? and id = ?
+                """,
+                (rs, rowNum) -> new CommentResponse(
+                        rs.getLong("id"),
+                        rs.getString("text"),
+                        rs.getLong("post_id")
+                ),
+                postId,
+                commentId
+        );
+        return result.stream().findFirst();
     }
 
     @Override

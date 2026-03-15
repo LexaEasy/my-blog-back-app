@@ -41,9 +41,9 @@ public class PostController {
 
     @GetMapping
     public PostsPageResponse getPosts(
-            @RequestParam(defaultValue = "") String search,
-            @RequestParam(defaultValue = "1") int pageNumber,
-            @RequestParam(defaultValue = "5") int pageSize
+            @RequestParam String search,
+            @RequestParam int pageNumber,
+            @RequestParam int pageSize
     ) {
         return postService.getPosts(search, pageNumber, pageSize);
     }
@@ -55,9 +55,9 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePost(@PathVariable long id) {
+    public ResponseEntity<Void> deletePost(@PathVariable long id) {
         postService.deletePost(id);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}")
@@ -103,7 +103,7 @@ public class PostController {
                 .body(bytes);
     }
 
-    @GetMapping("/{id}")
+    @RequestMapping(value = "/{id}", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<PostPreviewResponse> getPostById(@PathVariable long id) {
         return postService.getPostById(id)
                 .map(ResponseEntity::ok)
@@ -113,6 +113,16 @@ public class PostController {
     @GetMapping("/{id}/comments")
     public List<CommentResponse> getComments(@PathVariable long id) {
         return commentService.getByPostId(id);
+    }
+
+    @GetMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<CommentResponse> getComment(
+            @PathVariable long postId,
+            @PathVariable long commentId
+    ) {
+        return commentService.getById(postId, commentId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/comments")
@@ -143,7 +153,7 @@ public class PostController {
     ) {
         boolean deleted = commentService.delete(postId, commentId);
         return deleted
-                ? ResponseEntity.noContent().build()
+                ? ResponseEntity.ok().build()
                 : ResponseEntity.notFound().build();
     }
 
@@ -167,7 +177,7 @@ public class PostController {
         }
         boolean updated = postService.updateImage(id, image);
         return updated
-                ? ResponseEntity.status(HttpStatus.CREATED).body("ok")
+                ? ResponseEntity.ok("ok")
                 : ResponseEntity.notFound().build();
     }
 

@@ -91,6 +91,7 @@ class PostDaoJdbcTemplateTest {
     void updateById_shouldReturnTrue_andChangeData_whenIdExists() {
         long id = postDao.save("ORIGINAL_TITLE", "ORIGINAL_TEXT", List.of("old"));
         UpdatePostRequest request = new UpdatePostRequest(
+                id,
                 "UPDATED_TITLE",
                 "UPDATED_TEXT",
                 777,
@@ -115,6 +116,7 @@ class PostDaoJdbcTemplateTest {
     @Test
     void updateById_shouldReturnFalse_whenIdDoesNotExist() {
         UpdatePostRequest request = new UpdatePostRequest(
+                999_999L,
                 "NOPE",
                 "NOPE",
                 1,

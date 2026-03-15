@@ -44,7 +44,7 @@ public class PostServiceImpl implements PostService {
                 .map(p -> new PostPreviewResponse(
                         p.getId(),
                         p.getTitle(),
-                        p.getText(),
+                        truncatePreviewText(p.getText()),
                         p.getTags(),
                         p.getLikesCount(),
                         p.getCommentsCount()
@@ -99,6 +99,7 @@ public class PostServiceImpl implements PostService {
         Post existing = existingOpt.get();
 
         UpdatePostRequest normalized = new UpdatePostRequest(
+                id,
                 request.getTitle(),
                 request.getText(),
                 existing.getLikesCount(),
@@ -237,6 +238,16 @@ public class PostServiceImpl implements PostService {
                         Collectors.toCollection(LinkedHashSet::new),
                         List::copyOf
                 ));
+    }
+
+    private String truncatePreviewText(String text) {
+        if (text == null) {
+            return "";
+        }
+        if (text.length() <= 128) {
+            return text;
+        }
+        return text.substring(0, 128) + "…";
     }
 
     private record SearchQuery(String titlePart, List<String> tags) {

@@ -1,12 +1,18 @@
 plugins {
     id 'java'
     id 'war'
-    id 'org.springframework.boot' version '3.3.5'
-    id 'io.spring.dependency-management' version '1.1.6'
 }
 
 group = 'com.myblog'
 version = '0.0.1-SNAPSHOT'
+
+ext {
+    springVersion = '6.1.14'
+    junitVersion = '5.10.2'
+    h2Version = '2.2.224'
+    jacksonVersion = '2.17.2'
+    mockitoVersion = '5.12.0'
+}
 
 java {
     toolchain {
@@ -14,31 +20,33 @@ java {
     }
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-parameters']
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation 'org.springframework:spring-context'
-    implementation 'org.springframework:spring-web'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-    implementation 'com.h2database:h2'
-    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    implementation "org.springframework:spring-context:${springVersion}"
+    implementation "org.springframework:spring-webmvc:${springVersion}"
+    implementation "org.springframework:spring-jdbc:${springVersion}"
+    implementation "org.springframework:spring-tx:${springVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.h2database:h2:${h2Version}"
 
-    testImplementation platform('org.junit:junit-bom:5.10.2')
+    providedCompile 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation "org.springframework:spring-test:${springVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+    testImplementation 'org.skyscreamer:jsonassert:1.5.3'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
-}
-
-bootJar {
-    enabled = false
-}
-
-bootWar {
-    enabled = true
 }

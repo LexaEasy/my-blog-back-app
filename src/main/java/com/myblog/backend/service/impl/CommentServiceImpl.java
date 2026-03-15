@@ -29,6 +29,14 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    public java.util.Optional<CommentResponse> getById(long postId, long commentId) {
+        if (postDao.findById(postId).isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return commentDao.findById(postId, commentId);
+    }
+
+    @Override
     @Transactional
     public CommentResponse add(long postId, String text) {
         if (postDao.findById(postId).isEmpty()) {
@@ -37,7 +45,7 @@ public class CommentServiceImpl implements CommentService {
 
         String sanitizedText = sanitizeText(text);
         long commentId = commentDao.save(postId, sanitizedText);
-        return new CommentResponse(commentId, sanitizedText);
+        return new CommentResponse(commentId, sanitizedText, postId);
     }
 
     @Override
@@ -54,7 +62,7 @@ public class CommentServiceImpl implements CommentService {
         if (!updated) {
             return null;
         }
-        return new CommentResponse(commentId, sanitizedText);
+        return new CommentResponse(commentId, sanitizedText, postId);
     }
 
     private String sanitizeText(String text) {
