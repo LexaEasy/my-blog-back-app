@@ -8,6 +8,7 @@ create table posts(
     text varchar(5000) not null,
     likes_count integer not null default 0,
     comments_count integer not null default 0,
+    tags varchar(1000) not null default '',
     image blob
 );
 
@@ -29,12 +30,12 @@ create table post_likes(
         on delete cascade
 );
 
-insert into posts(title, text, likes_count, comments_count) values
-    ('Первый пост', 'Текст 1', 12, 3),
-    ('Второй пост', 'Текст 2', 5, 1),
-    ('Третий пост', 'Текст 3', 0, 0),
-    ('Четвёртый пост', 'Текст 4', 0, 0),
-    ('Пятый пост', '', 0, 0);
+insert into posts(title, text, likes_count, comments_count, tags) values
+    ('Первый пост', 'Текст 1', 12, 3, 'java spring'),
+    ('Второй пост', 'Текст 2', 5, 1, 'spring backend'),
+    ('Третий пост', 'Текст 3', 0, 0, 'testing junit'),
+    ('Четвёртый пост', 'Текст 4', 0, 0, 'frontend react'),
+    ('Пятый пост', '', 0, 0, 'java markdown');
 
 insert into comments(post_id, text) values
     (1, 'Первый комментарий к первому посту'),

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,7 +42,7 @@ public class PostServiceImpl implements PostService {
                         p.getId(),
                         p.getTitle(),
                         p.getText(),
-                        List.of(),
+                        p.getTags(),
                         p.getLikesCount(),
                         p.getCommentsCount()
                 ))
@@ -61,8 +62,9 @@ public class PostServiceImpl implements PostService {
         if (text.isBlank()) {
             throw new IllegalArgumentException("text не должен быть пустым");
         }
+        List<String> tags = normalizeTags(request.getTags());
 
-        long id = postDao.save(title, text);
+        long id = postDao.save(title, text, tags);
         Post created = postDao.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Созданный пост не найден"));
 
@@ -70,7 +72,7 @@ public class PostServiceImpl implements PostService {
                 created.getId(),
                 created.getTitle(),
                 created.getText(),
-                List.of(),
+                created.getTags(),
                 created.getLikesCount(),
                 created.getCommentsCount()
         );
@@ -97,7 +99,8 @@ public class PostServiceImpl implements PostService {
                 request.getTitle(),
                 request.getText(),
                 existing.getLikesCount(),
-                existing.getCommentsCount()
+                existing.getCommentsCount(),
+                normalizeTags(request.getTags())
         );
 
         boolean updated = postDao.updateById(id, normalized);
@@ -110,7 +113,7 @@ public class PostServiceImpl implements PostService {
                         p.getId(),
                         p.getTitle(),
                         p.getText(),
-                        List.of(),
+                        p.getTags(),
                         p.getLikesCount(),
                         p.getCommentsCount()
                 ));
@@ -142,7 +145,7 @@ public class PostServiceImpl implements PostService {
                         p.getId(),
                         p.getTitle(),
                         p.getText(),
-                        List.of(),
+                        p.getTags(),
                         p.getLikesCount(),
                         p.getCommentsCount()
                 ));
@@ -191,5 +194,19 @@ public class PostServiceImpl implements PostService {
         if (postDao.findById(postId).isEmpty()) {
             throw new IllegalArgumentException("Пост с id=" + postId + " не найден");
         }
+    }
+
+    private List<String> normalizeTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+        return tags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf
+                ));
     }
 }

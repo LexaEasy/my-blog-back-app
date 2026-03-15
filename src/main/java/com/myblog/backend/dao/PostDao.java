@@ -10,7 +10,7 @@ public interface PostDao {
     List<Post> findAll(String search, int pageNumber, int pageSize);
     int count(String search);
 
-    long save(String title, String text);
+    long save(String title, String text, List<String> tags);
     Optional<Post> findById(long id);
 
     boolean deleteById(long id);

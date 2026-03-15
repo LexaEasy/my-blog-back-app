@@ -70,8 +70,8 @@ class PostControllerMvcTest {
     void getPosts_shouldReturn200AndJson() throws Exception {
         PostsPageResponse response = new PostsPageResponse(
                 List.of(
-                        new PostPreviewResponse(1L, "Первый пост", "Текст 1", List.of(), 12, 3),
-                        new PostPreviewResponse(2L, "Второй пост", "Текст 2", List.of(), 5, 1)
+                        new PostPreviewResponse(1L, "Первый пост", "Текст 1", List.of("java", "spring"), 12, 3),
+                        new PostPreviewResponse(2L, "Второй пост", "Текст 2", List.of("backend"), 5, 1)
                 ),
                 true,
                 false,
@@ -96,7 +96,7 @@ class PostControllerMvcTest {
     @Test
     void createPost_shouldReturn201AndJson() throws Exception {
         PostPreviewResponse response = new PostPreviewResponse(
-                10L, "Новый пост", "Текст поста", java.util.List.of(), 0, 0
+                10L, "Новый пост", "Текст поста", java.util.List.of("java", "spring"), 0, 0
         );
 
         when(postService.createPost(any())).thenReturn(response);
@@ -104,12 +104,14 @@ class PostControllerMvcTest {
         mockMvc.perform(post("/api/posts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                              {"title":"Новый пост","text":"Текст поста"}
+                              {"title":"Новый пост","text":"Текст поста","tags":["java","spring"]}
                               """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.title").value("Новый пост"))
-                .andExpect(jsonPath("$.text").value("Текст поста"));
+                .andExpect(jsonPath("$.text").value("Текст поста"))
+                .andExpect(jsonPath("$.tags[0]").value("java"))
+                .andExpect(jsonPath("$.tags[1]").value("spring"));
     }
 
     @Test
@@ -128,13 +130,14 @@ class PostControllerMvcTest {
                 "Новый title",
                 "Новый text",
                 10,
-                2
+                2,
+                List.of("java", "spring")
         );
         PostPreviewResponse response = new PostPreviewResponse(
                 1L,
                 "Новый title",
                 "Новый text",
-                List.of(),
+                List.of("java", "spring"),
                 12,
                 3
         );
@@ -148,7 +151,9 @@ class PostControllerMvcTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.title").value("Новый title"))
-                .andExpect(jsonPath("$.text").value("Новый text"));
+                .andExpect(jsonPath("$.text").value("Новый text"))
+                .andExpect(jsonPath("$.tags[0]").value("java"))
+                .andExpect(jsonPath("$.tags[1]").value("spring"));
 
         verify(postService, times(1)).updatePost(eq(1L), any(UpdatePostRequest.class));
     }
@@ -159,7 +164,8 @@ class PostControllerMvcTest {
                 "Новый title",
                 "Новый text",
                 10,
-                2
+                2,
+                List.of("java")
         );
 
         when(postService.updatePost(eq(999L), any(UpdatePostRequest.class)))
@@ -302,14 +308,15 @@ class PostControllerMvcTest {
     @Test
     void getPostById_shouldReturn200AndJson_whenExists() throws Exception {
         PostPreviewResponse response = new PostPreviewResponse(
-                5L, "Пятый пост", "Текст 5", List.of(), 0, 0
+                5L, "Пятый пост", "Текст 5", List.of("java", "markdown"), 0, 0
         );
         when(postService.getPostById(5L)).thenReturn(java.util.Optional.of(response));
 
         mockMvc.perform(get("/api/posts/{id}", 5L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
-                .andExpect(jsonPath("$.title").value("Пятый пост"));
+                .andExpect(jsonPath("$.title").value("Пятый пост"))
+                .andExpect(jsonPath("$.tags[0]").value("java"));
     }
 
     @Test

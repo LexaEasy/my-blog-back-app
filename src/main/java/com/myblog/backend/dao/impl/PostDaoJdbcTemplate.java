@@ -10,6 +10,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,9 +30,9 @@ public class PostDaoJdbcTemplate implements PostDao {
         String like = "%" + search.toLowerCase() + "%";
         return jdbcTemplate.query(
                 """
-                select id, title, text, likes_count, comments_count
+                select id, title, text, tags, likes_count, comments_count
                 from posts
-                where lower(title) like ? or lower(text) like ?
+                where lower(title) like ? or lower(text) like ? or lower(coalesce(tags, '')) like ?
                 order by id desc
                 limit ? offset ?
                 """,
@@ -38,10 +40,11 @@ public class PostDaoJdbcTemplate implements PostDao {
                         rs.getLong("id"),
                         rs.getString("title"),
                         rs.getString("text"),
+                        parseTags(rs.getString("tags")),
                         rs.getInt("likes_count"),
                         rs.getInt("comments_count")
                 ),
-                like, like, pageSize, offset
+                like, like, like, pageSize, offset
         );
     }
 
@@ -49,24 +52,25 @@ public class PostDaoJdbcTemplate implements PostDao {
     public int count(String search) {
         String like = "%" + search.toLowerCase() + "%";
         Integer value = jdbcTemplate.queryForObject(
-                "select count(*) from posts where lower(title) like ? or lower(text) like ?",
+                "select count(*) from posts where lower(title) like ? or lower(text) like ? or lower(coalesce(tags, '')) like ?",
                 Integer.class,
-                like, like
+                like, like, like
         );
         return value == null ? 0 : value;
     }
 
     @Override
-    public long save(String title, String text) {
+    public long save(String title, String text, List<String> tags) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(
-                    "insert into posts(title, text, likes_count, comments_count) values (?, ?, 0, 0)",
+                    "insert into posts(title, text, likes_count, comments_count, tags) values (?, ?, 0, 0, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setString(1, title);
             ps.setString(2, text);
+            ps.setString(3, serializeTags(tags));
             return ps;
         }, keyHolder);
 
@@ -81,7 +85,7 @@ public class PostDaoJdbcTemplate implements PostDao {
     public Optional<Post> findById(long id) {
         List<Post> list = jdbcTemplate.query(
                 """
-                select id, title, text, likes_count, comments_count
+                select id, title, text, tags, likes_count, comments_count
                 from posts
                 where id = ?
                 """,
@@ -89,6 +93,7 @@ public class PostDaoJdbcTemplate implements PostDao {
                         rs.getLong("id"),
                         rs.getString("title"),
                         rs.getString("text"),
+                        parseTags(rs.getString("tags")),
                         rs.getInt("likes_count"),
                         rs.getInt("comments_count")
                 ),
@@ -110,7 +115,7 @@ public class PostDaoJdbcTemplate implements PostDao {
     public boolean updateById(long id, UpdatePostRequest request) {
         String sql = """
           update posts
-             set title = ?, text = ?, likes_count = ?, comments_count = ?
+             set title = ?, text = ?, likes_count = ?, comments_count = ?, tags = ?
            where id = ?
           """;
         int updated = jdbcTemplate.update(
@@ -119,6 +124,7 @@ public class PostDaoJdbcTemplate implements PostDao {
                 request.getText(),
                 request.getLikes(),
                 request.getComments(),
+                serializeTags(request.getTags()),
                 id
         );
         return updated > 0;
@@ -200,5 +206,22 @@ public class PostDaoJdbcTemplate implements PostDao {
                 id
         );
         return updated > 0;
+    }
+
+    private List<String> parseTags(String rawTags) {
+        if (rawTags == null || rawTags.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(rawTags.split("\\s+"))
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .toList();
+    }
+
+    private String serializeTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+        return String.join("\n", tags);
     }
 }

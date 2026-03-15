@@ -50,8 +50,8 @@ class PostServiceImplTest {
     @Test
     void getPosts_success() {
         when(postDao.findAll("", 1, 2)).thenReturn(List.of(
-                new Post(1L, "Первый пост", "Текст 1", 12, 3),
-                new Post(2L, "Второй пост", "Текст 2", 5, 1)
+                new Post(1L, "Первый пост", "Текст 1", List.of("java", "spring"), 12, 3),
+                new Post(2L, "Второй пост", "Текст 2", List.of("backend"), 5, 1)
         ));
         when(postDao.count("")).thenReturn(4);
 
@@ -84,18 +84,19 @@ class PostServiceImplTest {
 
     @Test
     void createPost_success() {
-        CreatePostRequest request = new CreatePostRequest("Новый пост", "Текст поста");
+        CreatePostRequest request = new CreatePostRequest("Новый пост", "Текст поста", List.of("java", "spring", "java"));
 
-        when(postDao.save("Новый пост", "Текст поста")).thenReturn(10L);
+        when(postDao.save("Новый пост", "Текст поста", List.of("java", "spring"))).thenReturn(10L);
         when(postDao.findById(10L)).thenReturn(
-                Optional.of(new Post(10L, "Новый пост", "Текст поста", 0, 0))
+                Optional.of(new Post(10L, "Новый пост", "Текст поста", List.of("java", "spring"), 0, 0))
         );
 
         PostPreviewResponse response = postService.createPost(request);
 
         assertEquals(10L, response.id());
         assertEquals("Новый пост", response.title());
-        verify(postDao, times(1)).save("Новый пост", "Текст поста");
+        assertEquals(List.of("java", "spring"), response.tags());
+        verify(postDao, times(1)).save("Новый пост", "Текст поста", List.of("java", "spring"));
         verify(postDao, times(1)).findById(10L);
     }
 
@@ -127,10 +128,11 @@ class PostServiceImplTest {
                 "Обновлённый заголовок",
                 "Обновлённый текст",
                 100,
-                10
+                10,
+                List.of("java", " spring ", "java")
         );
-        Post existing = new Post(1L, "Старый заголовок", "Старый текст", 7, 2);
-        Post updatedPost = new Post(1L, "Обновлённый заголовок", "Обновлённый текст", 7, 2);
+        Post existing = new Post(1L, "Старый заголовок", "Старый текст", List.of("old"), 7, 2);
+        Post updatedPost = new Post(1L, "Обновлённый заголовок", "Обновлённый текст", List.of("java", "spring"), 7, 2);
 
         when(postDao.findById(1L)).thenReturn(Optional.of(existing), Optional.of(updatedPost));
         when(postDao.updateById(eq(1L), any(UpdatePostRequest.class))).thenReturn(true);
@@ -140,6 +142,7 @@ class PostServiceImplTest {
         assertTrue(result.isPresent());
         assertEquals("Обновлённый заголовок", result.get().title());
         assertEquals("Обновлённый текст", result.get().text());
+        assertEquals(List.of("java", "spring"), result.get().tags());
         assertEquals(7, result.get().likesCount());
         assertEquals(2, result.get().commentsCount());
         verify(postDao, times(2)).findById(1L);
@@ -152,7 +155,8 @@ class PostServiceImplTest {
                 "Любой заголовок",
                 "Любой текст",
                 1,
-                0
+                0,
+                List.of("java")
         );
 
         when(postDao.findById(999L)).thenReturn(Optional.empty());
@@ -165,7 +169,7 @@ class PostServiceImplTest {
 
     @Test
     void getPostById_shouldReturnMappedDto_whenPostExists() {
-        Post post = new Post(5L, "Пятый пост", "Текст 5", 10, 2);
+        Post post = new Post(5L, "Пятый пост", "Текст 5", List.of("java", "markdown"), 10, 2);
         when(postDao.findById(5L)).thenReturn(java.util.Optional.of(post));
 
         java.util.Optional<PostPreviewResponse> result = postService.getPostById(5L);
@@ -173,6 +177,7 @@ class PostServiceImplTest {
         assertTrue(result.isPresent());
         assertEquals(5L, result.get().id());
         assertEquals("Пятый пост", result.get().title());
+        assertEquals(List.of("java", "markdown"), result.get().tags());
         verify(postDao, times(1)).findById(5L);
     }
 
@@ -188,7 +193,7 @@ class PostServiceImplTest {
 
     @Test
     void exists_shouldReturnTrue_whenPostExists() {
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 0, 0)));
 
         boolean result = postService.exists(1L);
 
@@ -227,7 +232,7 @@ class PostServiceImplTest {
 
     @Test
     void addLike_shouldReturnActualCount_whenLikeCreated() {
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 0, 0)));
         when(postDao.addLike(1L, "user-1")).thenReturn(true);
         when(postDao.getLikesCount(1L)).thenReturn(1);
 
@@ -240,7 +245,7 @@ class PostServiceImplTest {
 
     @Test
     void addLike_shouldReturnActualCount_whenDuplicateLike() {
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 1, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 1, 0)));
         when(postDao.addLike(1L, "user-1")).thenReturn(false);
         when(postDao.getLikesCount(1L)).thenReturn(1);
 
@@ -253,7 +258,7 @@ class PostServiceImplTest {
 
     @Test
     void removeLike_shouldReturnActualCount_whenLikeRemoved() {
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 2, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 2, 0)));
         when(postDao.removeLike(1L, "user-1")).thenReturn(true);
         when(postDao.getLikesCount(1L)).thenReturn(1);
 
@@ -274,7 +279,7 @@ class PostServiceImplTest {
     @Test
     void updateImage_shouldReturnTrue_whenPostExists() {
         MultipartFile image = new MockMultipartFile("image", "cover.png", "image/png", new byte[]{1, 2, 3});
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 0, 0)));
         when(postDao.updateImageById(eq(1L), argThat(bytes ->
                 bytes != null && bytes.length == 3 && bytes[0] == 1 && bytes[1] == 2 && bytes[2] == 3
         ))).thenReturn(true);
@@ -302,7 +307,7 @@ class PostServiceImplTest {
     @Test
     void updateImage_shouldThrow_whenFileEmpty() {
         MultipartFile image = new MockMultipartFile("image", "empty.png", "image/png", new byte[0]);
-        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", 0, 0)));
+        when(postDao.findById(1L)).thenReturn(Optional.of(new Post(1L, "t", "x", List.of(), 0, 0)));
 
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
