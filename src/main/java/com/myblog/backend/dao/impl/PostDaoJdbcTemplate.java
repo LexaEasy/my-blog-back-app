@@ -1,0 +1,263 @@
+package com.myblog.backend.dao.impl;
+
+import com.myblog.backend.dao.PostDao;
+import com.myblog.backend.model.domain.Post;
+import com.myblog.backend.model.dto.request.UpdatePostRequest;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Repository;
+
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public class PostDaoJdbcTemplate implements PostDao {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public PostDaoJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    public List<Post> findAll(String titlePart, List<String> tags, int pageNumber, int pageSize) {
+        int offset = (pageNumber - 1) * pageSize;
+        StringBuilder sql = new StringBuilder("""
+                select id, title, text, tags, likes_count, comments_count
+                from posts
+                where 1 = 1
+                """);
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (titlePart != null && !titlePart.isBlank()) {
+            sql.append(" and lower(title) like ? ");
+            params.add("%" + titlePart.toLowerCase() + "%");
+        }
+
+        for (String tag : tags) {
+            sql.append("""
+                     and concat(' ', replace(replace(replace(lower(coalesce(tags, '')), char(10), ' '), char(13), ' '), char(9), ' '), ' ')
+                         like ?
+                    """);
+            params.add("% " + tag.toLowerCase() + " %");
+        }
+
+        sql.append(" order by id desc limit ? offset ? ");
+        params.add(pageSize);
+        params.add(offset);
+
+        return jdbcTemplate.query(
+                sql.toString(),
+                (rs, rowNum) -> new Post(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("text"),
+                        parseTags(rs.getString("tags")),
+                        rs.getInt("likes_count"),
+                        rs.getInt("comments_count")
+                ),
+                params.toArray()
+        );
+    }
+
+    @Override
+    public int count(String titlePart, List<String> tags) {
+        StringBuilder sql = new StringBuilder("""
+                select count(*)
+                from posts
+                where 1 = 1
+                """);
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (titlePart != null && !titlePart.isBlank()) {
+            sql.append(" and lower(title) like ? ");
+            params.add("%" + titlePart.toLowerCase() + "%");
+        }
+
+        for (String tag : tags) {
+            sql.append("""
+                     and concat(' ', replace(replace(replace(lower(coalesce(tags, '')), char(10), ' '), char(13), ' '), char(9), ' '), ' ')
+                         like ?
+                    """);
+            params.add("% " + tag.toLowerCase() + " %");
+        }
+
+        Integer value = jdbcTemplate.queryForObject(
+                sql.toString(),
+                Integer.class,
+                params.toArray()
+        );
+        return value == null ? 0 : value;
+    }
+
+    @Override
+    public long save(String title, String text, List<String> tags) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(connection -> {
+            var ps = connection.prepareStatement(
+                    "insert into posts(title, text, likes_count, comments_count, tags) values (?, ?, 0, 0, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, title);
+            ps.setString(2, text);
+            ps.setString(3, serializeTags(tags));
+            return ps;
+        }, keyHolder);
+
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Не удалось получить id созданного поста");
+        }
+        return key.longValue();
+    }
+
+    @Override
+    public Optional<Post> findById(long id) {
+        List<Post> list = jdbcTemplate.query(
+                """
+                select id, title, text, tags, likes_count, comments_count
+                from posts
+                where id = ?
+                """,
+                (rs, rowNum) -> new Post(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("text"),
+                        parseTags(rs.getString("tags")),
+                        rs.getInt("likes_count"),
+                        rs.getInt("comments_count")
+                ),
+                id
+        );
+        return list.stream().findFirst();
+    }
+
+    @Override
+    public boolean deleteById(long id) {
+        int updated = jdbcTemplate.update(
+                "delete from posts where id = ?",
+                id
+        );
+        return updated > 0;
+    }
+
+    @Override
+    public boolean updateById(long id, UpdatePostRequest request) {
+        String sql = """
+          update posts
+             set title = ?, text = ?, likes_count = ?, comments_count = ?, tags = ?
+           where id = ?
+          """;
+        int updated = jdbcTemplate.update(
+                sql,
+                request.getTitle(),
+                request.getText(),
+                request.getLikes(),
+                request.getComments(),
+                serializeTags(request.getTags()),
+                id
+        );
+        return updated > 0;
+    }
+
+    @Override
+    public boolean addLike(long postId, String userKey) {
+        try {
+            int inserted = jdbcTemplate.update(
+                    "insert into post_likes(post_id, user_key) values (?, ?)",
+                    postId,
+                    userKey
+            );
+            if (inserted == 0) {
+                return false;
+            }
+            jdbcTemplate.update(
+                    "update posts set likes_count = likes_count + 1 where id = ?",
+                    postId
+            );
+            return true;
+        } catch (DuplicateKeyException ex) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean removeLike(long postId, String userKey) {
+        int deleted = jdbcTemplate.update(
+                "delete from post_likes where post_id = ? and user_key = ?",
+                postId,
+                userKey
+        );
+        if (deleted == 0) {
+            return false;
+        }
+
+        jdbcTemplate.update(
+                """
+                update posts
+                set likes_count = case
+                    when likes_count > 0 then likes_count - 1
+                    else 0
+                end
+                where id = ?
+                """,
+                postId
+        );
+        return true;
+    }
+
+    @Override
+    public int getLikesCount(long postId) {
+        Integer value = jdbcTemplate.queryForObject(
+                "select likes_count from posts where id = ?",
+                Integer.class,
+                postId
+        );
+        return value == null ? 0 : value;
+    }
+
+    @Override
+    public Optional<byte[]> findImageById(long id) {
+        List<byte[]> list = jdbcTemplate.query(
+                "select image from posts where id = ?",
+                (rs, rowNum) -> rs.getBytes("image"),
+                id
+        );
+        return list.stream()
+                .filter(bytes -> bytes != null && bytes.length > 0)
+                .findFirst();
+    }
+
+    @Override
+    public boolean updateImageById(long id, byte[] image) {
+        int updated = jdbcTemplate.update(
+                "update posts set image = ? where id = ?",
+                image,
+                id
+        );
+        return updated > 0;
+    }
+
+    private List<String> parseTags(String rawTags) {
+        if (rawTags == null || rawTags.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(rawTags.split("\\s+"))
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .toList();
+    }
+
+    private String serializeTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+        return String.join("\n", tags);
+    }
+}
