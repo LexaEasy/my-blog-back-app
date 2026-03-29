@@ -1,5 +1,6 @@
 package com.myblog.backend.service.impl;
 
+import com.myblog.backend.BackendApplication;
 import com.myblog.backend.config.ServiceTestConfig;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
@@ -10,12 +11,11 @@ import com.myblog.backend.model.dto.response.PostsPageResponse;
 import com.myblog.backend.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +32,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = ServiceTestConfig.class)
+@SpringBootTest(classes = BackendApplication.class)
+@Import(ServiceTestConfig.class)
 class PostServiceImplTest {
 
     @Autowired
