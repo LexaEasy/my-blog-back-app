@@ -1,24 +1,24 @@
 # my-blog-back-app
 
-Бэкенд веб приложения блога на Spring Framework 6 для запуска в сервлет контейнере Tomcat.
+Бэкенд веб приложения блога на Spring Boot 3.2 с запуском во встроенном сервлет контейнере Tomcat.
 
 ## Технологии
 
 Java 21
 
-Gradle
+Maven
 
-Spring Framework 6
+Spring Boot 3.2
 
-Spring Web MVC
+Spring Boot Web
 
-Spring JDBC
+Spring Boot Data JDBC
 
 H2 Database
 
 JUnit 5
 
-Spring TestContext Framework
+Spring Boot Test
 
 ## Структура проекта
 
@@ -30,95 +30,117 @@ Spring TestContext Framework
 
 `model` доменные модели и DTO
 
-`config` Java конфигурация приложения, MVC и БД
+`config` прикладные конфигурации, например CORS
 
 ## Основные эндпоинты
 
-`GET /api/posts?search=...&pageNumber=...&pageSize=...`
+`GET /api/posts?search=...&pageNumber=...&pageSize=...` получение списка постов с поиском и пагинацией
 
 `POST /api/posts/{id}` получение поста по идентификатору
 
-`POST /api/posts`
+`POST /api/posts` создание нового поста
 
-`PUT /api/posts/{id}`
+`PUT /api/posts/{id}` редактирование поста
 
-`DELETE /api/posts/{id}`
+`DELETE /api/posts/{id}` удаление поста
 
-`POST /api/posts/{id}/likes`
+`POST /api/posts/{id}/likes` постановка лайка посту
 
-`DELETE /api/posts/{id}/likes`
+`DELETE /api/posts/{id}/likes` снятие лайка с поста
 
-`PUT /api/posts/{id}/image`
+`GET /api/posts/{id}/likes` получение текущего числа лайков поста
 
-`GET /api/posts/{id}/image`
+`PUT /api/posts/{id}/image` обновление картинки поста
 
-`GET /api/posts/{id}/comments`
+`GET /api/posts/{id}/image` получение картинки поста
 
-`GET /api/posts/{postId}/comments/{commentId}`
+`GET /api/posts/{id}/comments` получение списка комментариев поста
 
-`POST /api/posts/{id}/comments`
+`GET /api/posts/{postId}/comments/{commentId}` получение комментария поста по идентификатору
 
-`PUT /api/posts/{postId}/comments/{commentId}`
+`POST /api/posts/{id}/comments` создание нового комментария к посту
 
-`DELETE /api/posts/{postId}/comments/{commentId}`
+`PUT /api/posts/{postId}/comments/{commentId}` редактирование комментария поста
+
+`DELETE /api/posts/{postId}/comments/{commentId}` удаление комментария поста
 
 ## Сборка проекта
 
 ```bash
-./gradlew clean build
+mvn clean package
 ```
 
 Для Windows:
 
 ```powershell
-.\gradlew.bat clean build
+mvn clean package
 ```
+
+Готовый исполняемый jar файл будет лежать в:
+
+`target/my-blog-back-app-0.0.1-SNAPSHOT.jar`
 
 ## Запуск тестов
 
 ```bash
-./gradlew test
+mvn test
 ```
 
 Для Windows:
 
 ```powershell
-.\gradlew.bat test
+mvn test
 ```
 
-## Сборка war
+## Запуск приложения
+
+Через Maven:
 
 ```bash
-./gradlew war
+mvn spring-boot:run
 ```
 
 Для Windows:
 
 ```powershell
-.\gradlew.bat war
+mvn spring-boot:run
 ```
 
-Готовый war файл будет лежать в:
+Через исполняемый jar:
 
-`build/libs/my-blog-back-app-0.0.1-SNAPSHOT.war`
+```bash
+java -jar target/my-blog-back-app-0.0.1-SNAPSHOT.jar
+```
 
-## Деплой в Tomcat
+Для Windows:
 
-1. Собрать war
+```powershell
+java -jar target\\my-blog-back-app-0.0.1-SNAPSHOT.jar
+```
 
-2. Скопировать `build/libs/my-blog-back-app-0.0.1-SNAPSHOT.war` в директорию `webapps` вашего Tomcat
-
-3. Запустить Tomcat
-
-4. Проверить, что приложение доступно на `http://localhost:8080`
+После старта приложение доступно на `http://localhost:8080`
 
 ## Конфигурация БД
 
 По умолчанию используется in memory база H2.
 
-Параметры подключения находятся в [application.properties](C:\Projects\Y_Java\my blog\my-blog-back-app\src\main\resources\application.properties)
+Параметры подключения находятся в [application.properties](C:\Projects\Y_Java\my blog\my-blog-back-app-boot\src\main\resources\application.properties)
 
-Схема и seed данные создаются при старте приложения из [schema.sql](C:\Projects\Y_Java\my blog\my-blog-back-app\src\main\resources\schema.sql)
+Схема и seed данные создаются при старте приложения из [schema.sql](C:\Projects\Y_Java\my blog\my-blog-back-app-boot\src\main\resources\schema.sql)
+
+Инициализация схемы включена через:
+
+`spring.sql.init.mode=always`
+
+## Конфигурация multipart
+
+Максимальный размер файла и запроса задаётся в [application.properties](C:\Projects\Y_Java\my blog\my-blog-back-app-boot\src\main\resources\application.properties)
+
+Используются значения:
+
+`spring.servlet.multipart.max-file-size=5MB`
+
+`spring.servlet.multipart.max-request-size=5MB`
 
 ## Поиск постов
 
@@ -132,8 +154,22 @@ Spring TestContext Framework
 
 Фильтрация по названию и тегам происходит по логике И
 
+## Тесты
+
+MVC, DAO и service тесты переведены на Spring Boot Test.
+
+Используются:
+
+`@SpringBootTest`
+
+`@AutoConfigureMockMvc`
+
+`@Transactional` для DAO тестов
+
+`@TestConfiguration` для изолированных mock конфигураций
+
 ## Примечания
 
-Приложение собирается как обычный war без использования Spring Boot
+Приложение больше не требует внешнего Tomcat и запускается как Spring Boot executable jar.
 
-Конфигурация servlet контейнера находится в [web.xml](C:\Projects\Y_Java\my blog\my-blog-back-app\src\main\webapp\WEB-INF\web.xml)
+Точка входа приложения находится в [BackendApplication.java](C:\Projects\Y_Java\my blog\my-blog-back-app-boot\src\main\java\com\myblog\backend\BackendApplication.java)
