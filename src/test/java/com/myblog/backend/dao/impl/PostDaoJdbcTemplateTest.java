@@ -1,14 +1,13 @@
 package com.myblog.backend.dao.impl;
 
-import com.myblog.backend.config.DaoTestConfig;
+import com.myblog.backend.BackendApplication;
 import com.myblog.backend.dao.PostDao;
 import com.myblog.backend.model.domain.Post;
 import com.myblog.backend.model.dto.request.UpdatePostRequest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,8 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = DaoTestConfig.class)
+@SpringBootTest(classes = BackendApplication.class)
+@Transactional
 class PostDaoJdbcTemplateTest {
 
     @Autowired
