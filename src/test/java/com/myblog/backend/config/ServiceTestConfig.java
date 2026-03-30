@@ -4,12 +4,11 @@ import com.myblog.backend.dao.CommentDao;
 import com.myblog.backend.dao.PostDao;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.boot.test.context.TestConfiguration;
 
-@Configuration
-@ComponentScan("com.myblog.backend.service")
+@TestConfiguration
 public class ServiceTestConfig {
 
     @Bean
